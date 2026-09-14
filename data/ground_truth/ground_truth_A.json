@@ -5,14 +5,14 @@
     "source_format": "pipe-delimited",
     "product_type": "GovernmentBond.FixedRate",
     "created": "2026-09-14",
+    "version": "2 - full CDM paths",
     "notes": [
       "COUPON field was 4.25 (percentage) — converted to 0.0425 (decimal) for CDM",
       "FREQ field was SEMI — mapped to period=M, periodMultiplier=6",
-      "DAY_COUNT was ACT/ACT — mapped to ACT_ACT_ICMA (standard for government bonds)",
-      "SIDE was BUY — we are the receiver (counterparty/issuer pays coupon to us)",
-      "SETTLE_AMT (9896250.00) includes accrued interest — not mapped directly, kept as note",
-      "ACCRUED_INT (21250.00) is a calculated field — stored as cross-check value only",
-      "ISIN US91282CJL54 confirmed as 12-char format — source set to ISIN"
+      "DAY_COUNT was ACT/ACT — mapped to ACT/ACT.ICMA",
+      "SIDE was BUY — payer=Party2, receiver=Party1",
+      "Currency USD inferred from ISIN prefix US",
+      "ACCRUED_INT and SETTLE_AMT not mapped — calculated fields"
     ]
   },
   "_source": {
@@ -43,131 +43,47 @@
     { "source_field": "ISIN", "cdm_path": "product.productIdentifier[0].identifier", "confidence": "HIGH" },
     { "source_field": "ISIN (scheme)", "cdm_path": "product.productIdentifier[0].source", "confidence": "HIGH", "derived_value": "ISIN" },
     { "source_field": "CPTY_CODE", "cdm_path": "party[1].partyId[0].identifier", "confidence": "HIGH" },
-    { "source_field": "SETTLE_DT", "cdm_path": "economicTerms.effectiveDate", "confidence": "HIGH" },
-    { "source_field": "MATURE_DT", "cdm_path": "economicTerms.terminationDate", "confidence": "HIGH" },
-    { "source_field": "QTY", "cdm_path": "principalPayment.principalAmount.amount", "confidence": "HIGH" },
-    { "source_field": "COUPON", "cdm_path": "rateSchedule.initialValue", "confidence": "HIGH", "transformation": "divide by 100: 4.25 -> 0.0425" },
-    { "source_field": "FREQ", "cdm_path": "calculationPeriodFrequency.period + periodMultiplier", "confidence": "HIGH", "transformation": "SEMI -> period=M, periodMultiplier=6" },
-    { "source_field": "DAY_COUNT", "cdm_path": "dayCountFraction", "confidence": "HIGH", "transformation": "ACT/ACT -> ACT_ACT_ICMA" },
-    { "source_field": "SIDE", "cdm_path": "payerReceiver.payer + receiver", "confidence": "HIGH", "transformation": "BUY -> receiver=Party1 (us), payer=Party2 (counterparty)" },
-    { "source_field": "PRICE", "cdm_path": "NOT MAPPED - Phase 1", "confidence": "LOW", "note": "Clean price - defer to Phase 2" },
-    { "source_field": "YIELD", "cdm_path": "NOT MAPPED - Phase 1", "confidence": "LOW", "note": "Yield to maturity - defer to Phase 2" },
-    { "source_field": "ACCRUED_INT", "cdm_path": "NOT MAPPED - calculated field", "confidence": "HIGH", "note": "Cross-check value only" },
-    { "source_field": "SETTLE_AMT", "cdm_path": "NOT MAPPED - includes accrued", "confidence": "MEDIUM", "note": "Dirty price x quantity" },
-    { "source_field": "SEC_ID", "cdm_path": "NOT MAPPED - internal code, ISIN preferred", "confidence": "HIGH" },
+    { "source_field": "SETTLE_DT", "cdm_path": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate", "confidence": "HIGH" },
+    { "source_field": "MATURE_DT", "cdm_path": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate", "confidence": "HIGH" },
+    { "source_field": "QTY", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount", "confidence": "HIGH" },
+    { "source_field": "COUPON", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue", "confidence": "HIGH", "transformation": "divide by 100: 4.25 -> 0.0425" },
+    { "source_field": "FREQ", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency", "confidence": "HIGH", "transformation": "SEMI -> period=M, periodMultiplier=6" },
+    { "source_field": "DAY_COUNT", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction", "confidence": "HIGH", "transformation": "ACT/ACT -> ACT/ACT.ICMA" },
+    { "source_field": "SIDE", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.payerReceiver", "confidence": "HIGH", "transformation": "BUY -> payer=Party2, receiver=Party1" },
+    { "source_field": "PRICE", "cdm_path": "NOT MAPPED - Phase 1", "confidence": "LOW" },
+    { "source_field": "YIELD", "cdm_path": "NOT MAPPED - informational only", "confidence": "HIGH" },
+    { "source_field": "ACCRUED_INT", "cdm_path": "NOT MAPPED - calculated field", "confidence": "HIGH" },
+    { "source_field": "SETTLE_AMT", "cdm_path": "NOT MAPPED - includes accrued", "confidence": "MEDIUM" },
+    { "source_field": "SEC_ID", "cdm_path": "NOT MAPPED - ISIN preferred", "confidence": "HIGH" },
     { "source_field": "SEC_DESC", "cdm_path": "NOT MAPPED - descriptive text", "confidence": "HIGH" }
   ],
   "cdmTrade": {
-    "tradeIdentifier": [
-      {
-        "assignedIdentifier": [
-          {
-            "identifier": "TB-20260914-001"
-          }
-        ]
-      }
-    ],
-    "tradeDate": {
-      "date": "2026-09-14"
-    },
+    "tradeIdentifier": [{"assignedIdentifier": [{"identifier": "TB-20260914-001"}]}],
+    "tradeDate": {"date": "2026-09-14"},
     "party": [
-      {
-        "partyId": [
-          {
-            "identifier": "OUR-BANK-INTERNAL",
-            "identifierType": "INTERNAL"
-          }
-        ],
-        "name": "OUR BANK PLC",
-        "role": "OUR_BANK"
-      },
-      {
-        "partyId": [
-          {
-            "identifier": "JPMORGAN",
-            "identifierType": "INTERNAL"
-          }
-        ],
-        "name": "JP MORGAN",
-        "role": "COUNTERPARTY"
-      }
+      {"partyId": [{"identifier": "OUR-BANK", "identifierType": "INTERNAL"}], "name": "OUR BANK PLC", "role": "OUR_BANK"},
+      {"partyId": [{"identifier": "JPMORGAN", "identifierType": "INTERNAL"}], "name": "JPMORGAN", "role": "COUNTERPARTY"}
     ],
     "product": {
       "productType": "Rates.GovernmentBond",
-      "productIdentifier": [
-        {
-          "identifier": "US91282CJL54",
-          "source": "ISIN"
-        }
-      ],
-      "description": "US TREASURY 4.25% 08/2034",
+      "productIdentifier": [{"identifier": "US91282CJL54", "source": "ISIN"}],
       "economicTerms": {
-        "effectiveDate": {
-          "adjustableDate": {
-            "unadjustedDate": "2026-09-16"
+        "effectiveDate": {"adjustableDate": {"unadjustedDate": "2026-09-16"}},
+        "terminationDate": {"adjustableDate": {"unadjustedDate": "2034-08-15"}},
+        "payout": [{
+          "interestRatePayout": {
+            "payerReceiver": {"payer": "Party2", "receiver": "Party1"},
+            "rateSpecification": {"fixedRate": {"rateSchedule": {"initialValue": 0.0425}}},
+            "dayCountFraction": "ACT/ACT.ICMA",
+            "calculationPeriodDates": {
+              "terminationDate": {"adjustableDate": {"unadjustedDate": "2034-08-15"}},
+              "calculationPeriodFrequency": {"period": "M", "periodMultiplier": 6}
+            },
+            "principalPayment": {"principalAmount": {"amount": 10000000, "unit": {"currency": "USD"}}}
           }
-        },
-        "terminationDate": {
-          "adjustableDate": {
-            "unadjustedDate": "2034-08-15"
-          }
-        },
-        "payout": [
-          {
-            "interestRatePayout": {
-              "payerReceiver": {
-                "payer": "Party2",
-                "receiver": "Party1"
-              },
-              "rateSpecification": {
-                "fixedRate": {
-                  "rateSchedule": {
-                    "initialValue": 0.0425
-                  }
-                }
-              },
-              "dayCountFraction": "ACT/ACT.ICMA",
-              "calculationPeriodDates": {
-                "effectiveDate": {
-                  "adjustableDate": {
-                    "unadjustedDate": "2026-09-16"
-                  }
-                },
-                "terminationDate": {
-                  "adjustableDate": {
-                    "unadjustedDate": "2034-08-15"
-                  }
-                },
-                "calculationPeriodFrequency": {
-                  "period": "M",
-                  "periodMultiplier": 6,
-                  "rollConvention": "15"
-                }
-              },
-              "principalPayment": {
-                "principalAmount": {
-                  "amount": 10000000.00,
-                  "unit": {
-                    "currency": "USD"
-                  }
-                }
-              }
-            }
-          }
-        ]
+        }]
       }
     },
-    "dates": {
-      "tradeDate": "2026-09-14",
-      "settlementDate": "2026-09-16",
-      "maturityDate": "2034-08-15"
-    },
-    "_crossChecks": {
-      "accruedInterest": 21250.00,
-      "cleanPrice": 98.750,
-      "yieldToMaturity": 4.42,
-      "settlementAmount": 9896250.00,
-      "note": "settlementAmount = (cleanPrice/100 * faceValue) + accruedInterest = 9875000 + 21250 = 9896250 ✓"
-    }
+    "dates": {"tradeDate": "2026-09-14", "settlementDate": "2026-09-16", "maturityDate": "2034-08-15"}
   }
 }

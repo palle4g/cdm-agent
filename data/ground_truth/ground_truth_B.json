@@ -5,19 +5,16 @@
     "source_format": "JSON",
     "product_type": "GovernmentBond.FixedRate",
     "created": "2026-09-14",
+    "version": "2 - full CDM paths",
     "notes": [
-      "coupon_rate was 4.25 (percentage) — converted to 0.0425 (decimal) for CDM",
-      "payment_frequency was SEMI-ANNUAL — mapped to period=M, periodMultiplier=6",
-      "day_count_basis was ACT/ACT ICMA — mapped to ACT_ACT_ICMA",
-      "transaction_type was PURCHASE — equivalent to BUY, we are the receiver",
-      "No own-bank identifier in source — flagged as MEDIUM confidence, use internal placeholder",
-      "counterparty_lei present — higher quality identifier than Sample A's CPTY_CODE",
-      "face_value used for principal (not settlement_amount which includes accrued)",
-      "No TRADE_NUM in source — deal_id used as trade identifier"
+      "coupon_rate 4.25 -> 0.0425 decimal",
+      "payment_frequency SEMI-ANNUAL -> period=M, periodMultiplier=6",
+      "day_count_basis ACT/ACT ICMA -> ACT/ACT.ICMA",
+      "transaction_type PURCHASE -> payer=Party2, receiver=Party1",
+      "counterparty_lei available — higher quality than Sample A"
     ]
   },
   "_source": {
-    "raw": "{\"deal_id\":\"BOND-2026-8821\",\"security\":\"US91282CJL54\",\"description\":\"US TREASURY NOTE 4.25 08/15/2034\",\"transaction_type\":\"PURCHASE\",\"face_value\":5000000,\"currency\":\"USD\",\"clean_price\":98.75,\"accrued_interest\":10625.00,\"settlement_amount\":4948125.00,\"coupon_rate\":4.25,\"payment_frequency\":\"SEMI-ANNUAL\",\"day_count_basis\":\"ACT/ACT ICMA\",\"trade_date\":\"2026-09-14\",\"settlement_date\":\"2026-09-16\",\"maturity_date\":\"2034-08-15\",\"counterparty\":\"GOLDMAN SACHS\",\"counterparty_lei\":\"784F5XWPLTWKTBV3E584\"}",
     "fields": {
       "deal_id": "BOND-2026-8821",
       "security": "US91282CJL54",
@@ -42,134 +39,48 @@
     { "source_field": "deal_id", "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier", "confidence": "HIGH" },
     { "source_field": "trade_date", "cdm_path": "tradeDate.date", "confidence": "HIGH" },
     { "source_field": "security", "cdm_path": "product.productIdentifier[0].identifier", "confidence": "HIGH" },
-    { "source_field": "security (scheme)", "cdm_path": "product.productIdentifier[0].source", "confidence": "HIGH", "derived_value": "ISIN", "note": "12-char alphanumeric starting with US = ISIN" },
+    { "source_field": "security (scheme)", "cdm_path": "product.productIdentifier[0].source", "confidence": "HIGH", "derived_value": "ISIN" },
     { "source_field": "counterparty_lei", "cdm_path": "party[1].partyId[0].identifier", "confidence": "HIGH" },
-    { "source_field": "counterparty_lei (scheme)", "cdm_path": "party[1].partyId[0].identifierType", "confidence": "HIGH", "derived_value": "LEI" },
-    { "source_field": "counterparty", "cdm_path": "party[1].name", "confidence": "HIGH" },
-    { "source_field": "settlement_date", "cdm_path": "economicTerms.effectiveDate", "confidence": "HIGH" },
-    { "source_field": "maturity_date", "cdm_path": "economicTerms.terminationDate", "confidence": "HIGH" },
-    { "source_field": "face_value", "cdm_path": "principalPayment.principalAmount.amount", "confidence": "HIGH" },
-    { "source_field": "currency", "cdm_path": "principalPayment.principalAmount.unit.currency", "confidence": "HIGH" },
-    { "source_field": "coupon_rate", "cdm_path": "rateSchedule.initialValue", "confidence": "HIGH", "transformation": "divide by 100: 4.25 -> 0.0425" },
-    { "source_field": "payment_frequency", "cdm_path": "calculationPeriodFrequency.period + periodMultiplier", "confidence": "HIGH", "transformation": "SEMI-ANNUAL -> period=M, periodMultiplier=6" },
-    { "source_field": "day_count_basis", "cdm_path": "dayCountFraction", "confidence": "HIGH", "transformation": "ACT/ACT ICMA -> ACT_ACT_ICMA" },
-    { "source_field": "transaction_type", "cdm_path": "payerReceiver.payer + receiver", "confidence": "HIGH", "transformation": "PURCHASE -> receiver=Party1, payer=Party2" },
+    { "source_field": "settlement_date", "cdm_path": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate", "confidence": "HIGH" },
+    { "source_field": "maturity_date", "cdm_path": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate", "confidence": "HIGH" },
+    { "source_field": "face_value", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount", "confidence": "HIGH" },
+    { "source_field": "currency", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency", "confidence": "HIGH" },
+    { "source_field": "coupon_rate", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue", "confidence": "HIGH", "transformation": "divide by 100: 4.25 -> 0.0425" },
+    { "source_field": "payment_frequency", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency", "confidence": "HIGH", "transformation": "SEMI-ANNUAL -> period=M, periodMultiplier=6" },
+    { "source_field": "day_count_basis", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction", "confidence": "HIGH", "transformation": "ACT/ACT ICMA -> ACT/ACT.ICMA" },
+    { "source_field": "transaction_type", "cdm_path": "product.economicTerms.payout[0].interestRatePayout.payerReceiver", "confidence": "HIGH", "transformation": "PURCHASE -> payer=Party2, receiver=Party1" },
     { "source_field": "clean_price", "cdm_path": "NOT MAPPED - Phase 1", "confidence": "LOW" },
     { "source_field": "accrued_interest", "cdm_path": "NOT MAPPED - calculated field", "confidence": "HIGH" },
     { "source_field": "settlement_amount", "cdm_path": "NOT MAPPED - includes accrued", "confidence": "MEDIUM" },
     { "source_field": "description", "cdm_path": "NOT MAPPED - descriptive text", "confidence": "HIGH" }
   ],
   "cdmTrade": {
-    "tradeIdentifier": [
-      {
-        "assignedIdentifier": [
-          {
-            "identifier": "BOND-2026-8821"
-          }
-        ]
-      }
-    ],
-    "tradeDate": {
-      "date": "2026-09-14"
-    },
+    "tradeIdentifier": [{"assignedIdentifier": [{"identifier": "BOND-2026-8821"}]}],
+    "tradeDate": {"date": "2026-09-14"},
     "party": [
-      {
-        "partyId": [
-          {
-            "identifier": "OUR-BANK-INTERNAL",
-            "identifierType": "INTERNAL"
-          }
-        ],
-        "name": "OUR BANK PLC",
-        "role": "OUR_BANK",
-        "note": "Own bank identifier not present in source — placeholder used"
-      },
-      {
-        "partyId": [
-          {
-            "identifier": "784F5XWPLTWKTBV3E584",
-            "identifierType": "LEI"
-          }
-        ],
-        "name": "GOLDMAN SACHS",
-        "role": "COUNTERPARTY"
-      }
+      {"partyId": [{"identifier": "OUR-BANK", "identifierType": "INTERNAL"}], "name": "OUR BANK PLC", "role": "OUR_BANK"},
+      {"partyId": [{"identifier": "784F5XWPLTWKTBV3E584", "identifierType": "LEI"}], "name": "GOLDMAN SACHS", "role": "COUNTERPARTY"}
     ],
     "product": {
       "productType": "Rates.GovernmentBond",
-      "productIdentifier": [
-        {
-          "identifier": "US91282CJL54",
-          "source": "ISIN"
-        }
-      ],
-      "description": "US TREASURY NOTE 4.25 08/15/2034",
+      "productIdentifier": [{"identifier": "US91282CJL54", "source": "ISIN"}],
       "economicTerms": {
-        "effectiveDate": {
-          "adjustableDate": {
-            "unadjustedDate": "2026-09-16"
+        "effectiveDate": {"adjustableDate": {"unadjustedDate": "2026-09-16"}},
+        "terminationDate": {"adjustableDate": {"unadjustedDate": "2034-08-15"}},
+        "payout": [{
+          "interestRatePayout": {
+            "payerReceiver": {"payer": "Party2", "receiver": "Party1"},
+            "rateSpecification": {"fixedRate": {"rateSchedule": {"initialValue": 0.0425}}},
+            "dayCountFraction": "ACT/ACT.ICMA",
+            "calculationPeriodDates": {
+              "terminationDate": {"adjustableDate": {"unadjustedDate": "2034-08-15"}},
+              "calculationPeriodFrequency": {"period": "M", "periodMultiplier": 6}
+            },
+            "principalPayment": {"principalAmount": {"amount": 5000000, "unit": {"currency": "USD"}}}
           }
-        },
-        "terminationDate": {
-          "adjustableDate": {
-            "unadjustedDate": "2034-08-15"
-          }
-        },
-        "payout": [
-          {
-            "interestRatePayout": {
-              "payerReceiver": {
-                "payer": "Party2",
-                "receiver": "Party1"
-              },
-              "rateSpecification": {
-                "fixedRate": {
-                  "rateSchedule": {
-                    "initialValue": 0.0425
-                  }
-                }
-              },
-              "dayCountFraction": "ACT/ACT.ICMA",
-              "calculationPeriodDates": {
-                "effectiveDate": {
-                  "adjustableDate": {
-                    "unadjustedDate": "2026-09-16"
-                  }
-                },
-                "terminationDate": {
-                  "adjustableDate": {
-                    "unadjustedDate": "2034-08-15"
-                  }
-                },
-                "calculationPeriodFrequency": {
-                  "period": "M",
-                  "periodMultiplier": 6,
-                  "rollConvention": "15"
-                }
-              },
-              "principalPayment": {
-                "principalAmount": {
-                  "amount": 5000000.00,
-                  "unit": {
-                    "currency": "USD"
-                  }
-                }
-              }
-            }
-          }
-        ]
+        }]
       }
     },
-    "dates": {
-      "tradeDate": "2026-09-14",
-      "settlementDate": "2026-09-16",
-      "maturityDate": "2034-08-15"
-    },
-    "_crossChecks": {
-      "accruedInterest": 10625.00,
-      "cleanPrice": 98.75,
-      "settlementAmount": 4948125.00,
-      "note": "settlementAmount = (cleanPrice/100 * faceValue) + accruedInterest = 4937500 + 10625 = 4948125 ✓"
-    }
+    "dates": {"tradeDate": "2026-09-14", "settlementDate": "2026-09-16", "maturityDate": "2034-08-15"}
   }
 }
