@@ -1,0 +1,177 @@
+{
+  "_metadata": {
+    "ground_truth_id": "GT-BOND-003",
+    "sample_id": "Sample C",
+    "source_format": "fixed-width mainframe",
+    "product_type": "GovernmentBond.FixedRate",
+    "created": "2026-09-14",
+    "notes": [
+      "Fixed-width format — fields identified by column position, not field names",
+      "COUPON field was 4.2500 (percentage) — converted to 0.0425 (decimal) for CDM",
+      "FREQ field was S (single character) — mapped to SEMI-ANNUAL: period=M, periodMultiplier=6",
+      "SIDE field was B (single character) — mapped to BUY: we are the receiver",
+      "MAT_DATE was 20340815 (YYYYMMDD no separators) — parsed to 2034-08-15",
+      "No trade date, settlement date, or day count in source — flagged as LOW confidence / missing",
+      "No currency in source — inferred as USD from ISIN prefix US (MEDIUM confidence)",
+      "CPTY was BARC — short code for Barclays, mapped as internal identifier",
+      "Most fields have LOW completeness — this format requires the most agent inference"
+    ]
+  },
+  "_source": {
+    "raw": "TB0091234 US91282CJL54  B    10000000   98.7500  4.2500 S    20340815   BARC",
+    "fields_by_position": {
+      "TRADE_ID": "TB0091234",
+      "ISIN": "US91282CJL54",
+      "SIDE": "B",
+      "QTY": "10000000",
+      "PRICE": "98.7500",
+      "COUPON": "4.2500",
+      "FREQ": "S",
+      "MAT_DATE": "20340815",
+      "CPTY": "BARC"
+    }
+  },
+  "_field_mapping": [
+    { "source_field": "TRADE_ID", "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier", "confidence": "HIGH" },
+    { "source_field": "ISIN", "cdm_path": "product.productIdentifier[0].identifier", "confidence": "HIGH" },
+    { "source_field": "ISIN (scheme)", "cdm_path": "product.productIdentifier[0].source", "confidence": "HIGH", "derived_value": "ISIN" },
+    { "source_field": "CPTY", "cdm_path": "party[1].partyId[0].identifier", "confidence": "MEDIUM", "note": "Short code only — no LEI available" },
+    { "source_field": "MAT_DATE", "cdm_path": "economicTerms.terminationDate", "confidence": "HIGH", "transformation": "20340815 (YYYYMMDD) -> 2034-08-15 (ISO)" },
+    { "source_field": "QTY", "cdm_path": "principalPayment.principalAmount.amount", "confidence": "HIGH" },
+    { "source_field": "currency (inferred)", "cdm_path": "principalPayment.principalAmount.unit.currency", "confidence": "MEDIUM", "derived_value": "USD", "note": "Inferred from ISIN prefix US — not in source" },
+    { "source_field": "COUPON", "cdm_path": "rateSchedule.initialValue", "confidence": "HIGH", "transformation": "divide by 100: 4.2500 -> 0.0425" },
+    { "source_field": "FREQ", "cdm_path": "calculationPeriodFrequency.period + periodMultiplier", "confidence": "HIGH", "transformation": "S -> SEMI-ANNUAL -> period=M, periodMultiplier=6" },
+    { "source_field": "SIDE", "cdm_path": "payerReceiver.payer + receiver", "confidence": "HIGH", "transformation": "B -> BUY -> receiver=Party1, payer=Party2" },
+    { "source_field": "PRICE", "cdm_path": "NOT MAPPED - Phase 1", "confidence": "LOW" },
+    { "source_field": "trade_date", "cdm_path": "tradeDate.date", "confidence": "LOW", "note": "MISSING from source — not present in this format" },
+    { "source_field": "settlement_date", "cdm_path": "economicTerms.effectiveDate", "confidence": "LOW", "note": "MISSING from source — not present in this format" },
+    { "source_field": "day_count", "cdm_path": "dayCountFraction", "confidence": "LOW", "note": "MISSING from source — defaulted to ACT/ACT.ICMA for US government bonds" }
+  ],
+  "_missing_fields": [
+    {
+      "cdm_path": "tradeDate.date",
+      "reason": "Not present in fixed-width format",
+      "action": "Flag for human review — cannot default safely"
+    },
+    {
+      "cdm_path": "economicTerms.effectiveDate",
+      "reason": "Settlement date not present in format",
+      "action": "Flag for human review — T+2 from trade date is standard for US Treasuries but trade date is also missing"
+    },
+    {
+      "cdm_path": "dayCountFraction",
+      "reason": "Not present in format",
+      "action": "Defaulted to ACT/ACT.ICMA — standard for US government bonds. MEDIUM confidence."
+    },
+    {
+      "cdm_path": "principalPayment.principalAmount.unit.currency",
+      "reason": "Not explicitly in format",
+      "action": "Inferred USD from ISIN country prefix US. MEDIUM confidence."
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "TB0091234"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": null,
+      "_flag": "MISSING — not present in source format. Requires human review."
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK-INTERNAL",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "BARC",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "BARCLAYS",
+        "role": "COUNTERPARTY",
+        "_flag": "Short code only — LEI not available in this format. MEDIUM confidence."
+      }
+    ],
+    "product": {
+      "productType": "Rates.GovernmentBond",
+      "productIdentifier": [
+        {
+          "identifier": "US91282CJL54",
+          "source": "ISIN"
+        }
+      ],
+      "economicTerms": {
+        "effectiveDate": {
+          "adjustableDate": {
+            "unadjustedDate": null
+          },
+          "_flag": "MISSING — settlement date not in source. Requires human review."
+        },
+        "terminationDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2034-08-15"
+          }
+        },
+        "payout": [
+          {
+            "interestRatePayout": {
+              "payerReceiver": {
+                "payer": "Party2",
+                "receiver": "Party1"
+              },
+              "rateSpecification": {
+                "fixedRate": {
+                  "rateSchedule": {
+                    "initialValue": 0.0425
+                  }
+                }
+              },
+              "dayCountFraction": "ACT/ACT.ICMA",
+              "_dayCountFlag": "INFERRED — not in source. Standard for US govt bonds. MEDIUM confidence.",
+              "calculationPeriodDates": {
+                "terminationDate": {
+                  "adjustableDate": {
+                    "unadjustedDate": "2034-08-15"
+                  }
+                },
+                "calculationPeriodFrequency": {
+                  "period": "M",
+                  "periodMultiplier": 6,
+                  "rollConvention": "15"
+                }
+              },
+              "principalPayment": {
+                "principalAmount": {
+                  "amount": 10000000.00,
+                  "unit": {
+                    "currency": "USD",
+                    "_currencyFlag": "INFERRED from ISIN prefix US. MEDIUM confidence."
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "dates": {
+      "tradeDate": null,
+      "settlementDate": null,
+      "maturityDate": "2034-08-15"
+    }
+  }
+}
