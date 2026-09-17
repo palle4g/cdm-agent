@@ -1,9 +1,7 @@
 """
 schemas/registry.py
 Maps a product type to its schema and metadata.
-
-This is the lookup the agent uses. Adding a product means adding one line
-here plus a schema file - no changes to the agent code.
+Adding a product = add one import + one line in _REGISTRY. No agent code changes.
 """
 
 import os
@@ -12,19 +10,16 @@ import sys
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from schemas import government_bond
+from schemas import fx_forward
 
 # Registry: product_type string -> schema module
-# To add a product: import its module and add it here.
 _REGISTRY = {
     "GovernmentBond": government_bond,
+    "FXForward": fx_forward,
 }
 
 
 def get_schema(product_type):
-    """
-    Return the SCHEMA string for a product type.
-    Raises a clear error if the product type is unknown.
-    """
     module = _REGISTRY.get(product_type)
     if module is None:
         raise ValueError(
@@ -35,7 +30,6 @@ def get_schema(product_type):
 
 
 def get_metadata(product_type):
-    """Return the PRODUCT_METADATA dict for a product type."""
     module = _REGISTRY.get(product_type)
     if module is None:
         return None
@@ -43,36 +37,50 @@ def get_metadata(product_type):
 
 
 def list_products():
-    """Return all registered product types."""
     return list(_REGISTRY.keys())
 
 
 def detect_product_type(normalized_fields):
     """
-    Minimal product-type detection.
-    Currently returns GovernmentBond if bond-like fields are present,
-    else UNKNOWN. Extend this as more products are added.
+    Score each registered product by how many detection hints match,
+    then return the best match. This handles the case where a source
+    might weakly match more than one product's hints.
     """
     field_names_lower = [k.lower() for k in normalized_fields.keys()]
+
+    best_product = "UNKNOWN"
+    best_score = 0
 
     for product_type, module in _REGISTRY.items():
         hints = module.PRODUCT_METADATA.get("detection_hints", {})
         must_have_any = [h.lower() for h in hints.get("must_have_any", [])]
+        strong_signals = [h.lower() for h in hints.get("strong_signals", [])]
         excludes = [h.lower() for h in hints.get("excludes", [])]
 
-        has_required = any(h in field_names_lower for h in must_have_any) if must_have_any else True
+        has_required = any(h in field_names_lower for h in must_have_any) if must_have_any else False
         has_excluded = any(h in field_names_lower for h in excludes)
 
-        if has_required and not has_excluded:
-            return product_type
+        if not has_required or has_excluded:
+            continue
 
-    return "UNKNOWN"
+        score = sum(1 for h in must_have_any if h in field_names_lower)
+        score += sum(1 for h in strong_signals if h in field_names_lower)
+
+        if score > best_score:
+            best_score = score
+            best_product = product_type
+
+    return best_product
 
 
 if __name__ == "__main__":
     print("Registered products: " + ", ".join(list_products()))
-    # quick detection test
-    test_fields = {"ISIN": "US91282CJL54", "COUPON": "4.25", "MATURE_DT": "2034-08-15"}
-    print("Detection test (bond fields): " + detect_product_type(test_fields))
-    test_fx = {"BUY_CCY": "EUR", "SELL_CCY": "USD"}
-    print("Detection test (FX fields): " + detect_product_type(test_fx))
+
+    bond_fields = {"ISIN": "US91282CJL54", "COUPON": "4.25", "MATURE_DT": "2034-08-15"}
+    print("Bond fields detected as: " + detect_product_type(bond_fields))
+
+    fx_fields = {"BUY_CCY": "EUR", "SELL_CCY": "USD", "BUY_NOTIONAL": "1000000"}
+    print("FX fields detected as: " + detect_product_type(fx_fields))
+
+    unknown_fields = {"FOO": "bar"}
+    print("Unknown fields detected as: " + detect_product_type(unknown_fields))

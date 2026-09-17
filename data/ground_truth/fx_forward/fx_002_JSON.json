@@ -1,0 +1,131 @@
+{
+  "_metadata": {
+    "ground_truth_id": "fx_002",
+    "product_type": "FXForward",
+    "source_format": "JSON",
+    "description": "GBP/JPY forward, direction=SELL style, JSON"
+  },
+  "_source": {
+    "raw": "{\"deal_ref\":\"FXF-002\",\"instrument\":\"FX_FWD\",\"ccy_pair\":\"GBP/JPY\",\"direction\":\"SELL\",\"base_amount\":3000000,\"quote_amount\":570000000,\"settle\":\"2026-11-20\",\"booking_date\":\"2026-09-10\",\"client_name\":\"NOMURA SECURITIES\",\"client_lei\":\"353800LQV0Y32DZS7009\"}"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "deal_ref",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "client_lei",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "booking_date",
+      "cdm_path": "tradeDate.date",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "base_amount",
+      "cdm_path": "product.economicTerms.payoutLeg2.amount.value",
+      "confidence": "HIGH",
+      "transformation": "SELL base(GBP)=pay leg"
+    },
+    {
+      "source_field": "ccy_pair (base)",
+      "cdm_path": "product.economicTerms.payoutLeg2.amount.currency",
+      "confidence": "MEDIUM",
+      "transformation": "GBP/JPY base=GBP",
+      "reason": "Currency parsed from first 3 chars of ccy_pair"
+    },
+    {
+      "source_field": "direction (leg2)",
+      "cdm_path": "product.economicTerms.payoutLeg2.direction",
+      "confidence": "HIGH",
+      "transformation": "SELL -> PAY base"
+    },
+    {
+      "source_field": "quote_amount",
+      "cdm_path": "product.economicTerms.payoutLeg1.amount.value",
+      "confidence": "HIGH",
+      "transformation": "SELL quote(JPY)=receive leg"
+    },
+    {
+      "source_field": "ccy_pair (quote)",
+      "cdm_path": "product.economicTerms.payoutLeg1.amount.currency",
+      "confidence": "MEDIUM",
+      "transformation": "GBP/JPY quote=JPY",
+      "reason": "Currency parsed from last 3 chars of ccy_pair"
+    },
+    {
+      "source_field": "direction (leg1)",
+      "cdm_path": "product.economicTerms.payoutLeg1.direction",
+      "confidence": "HIGH",
+      "transformation": "SELL -> RECEIVE quote"
+    },
+    {
+      "source_field": "settle",
+      "cdm_path": "product.economicTerms.settlementDate",
+      "confidence": "HIGH"
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "FXF-002"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": "2026-09-10"
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "353800LQV0Y32DZS7009",
+            "identifierType": "LEI"
+          }
+        ],
+        "name": "NOMURA SECURITIES",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "ForeignExchange.Forward",
+      "economicTerms": {
+        "payoutLeg1": {
+          "direction": "RECEIVE",
+          "amount": {
+            "value": 570000000,
+            "currency": "JPY"
+          }
+        },
+        "payoutLeg2": {
+          "direction": "PAY",
+          "amount": {
+            "value": 3000000,
+            "currency": "GBP"
+          }
+        },
+        "settlementDate": "2026-11-20"
+      }
+    },
+    "dates": {
+      "tradeDate": "2026-09-10",
+      "settlementDate": "2026-11-20"
+    }
+  }
+}

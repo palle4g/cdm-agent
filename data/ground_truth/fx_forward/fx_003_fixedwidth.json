@@ -1,0 +1,128 @@
+{
+  "_metadata": {
+    "ground_truth_id": "fx_003",
+    "product_type": "FXForward",
+    "source_format": "fixedwidth",
+    "description": "USD/CHF forward, BUY, fixed-width, missing settlement date"
+  },
+  "_source": {
+    "raw": "TRD_ID   CPTY     BUY_CCY BUY_AMT     SELL_CCY SELL_AMT    TRADE_DT\nFXF003   UBS      USD     5000000.00  CHF      4425000.00  2026-09-12"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "TRD_ID",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "CPTY",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "MEDIUM",
+      "reason": "Short code only, no LEI in source"
+    },
+    {
+      "source_field": "TRADE_DT",
+      "cdm_path": "tradeDate.date",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "BUY_CCY",
+      "cdm_path": "product.economicTerms.payoutLeg1.amount.currency",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "BUY_AMT",
+      "cdm_path": "product.economicTerms.payoutLeg1.amount.value",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "BUY_CCY (direction)",
+      "cdm_path": "product.economicTerms.payoutLeg1.direction",
+      "confidence": "HIGH",
+      "transformation": "BUY -> RECEIVE"
+    },
+    {
+      "source_field": "SELL_CCY",
+      "cdm_path": "product.economicTerms.payoutLeg2.amount.currency",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "SELL_AMT",
+      "cdm_path": "product.economicTerms.payoutLeg2.amount.value",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "SELL_CCY (direction)",
+      "cdm_path": "product.economicTerms.payoutLeg2.direction",
+      "confidence": "HIGH",
+      "transformation": "SELL -> PAY"
+    },
+    {
+      "source_field": "settlementDate (inferred)",
+      "cdm_path": "product.economicTerms.settlementDate",
+      "confidence": "LOW",
+      "missingSourceField": true,
+      "reason": "No settlement or value date present in source data. Required field for FX forwards - must be confirmed by human reviewer, no safe default exists."
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "FXF003"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": "2026-09-12"
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "UBS",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "UBS",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "ForeignExchange.Forward",
+      "economicTerms": {
+        "payoutLeg1": {
+          "direction": "RECEIVE",
+          "amount": {
+            "value": 5000000.0,
+            "currency": "USD"
+          }
+        },
+        "payoutLeg2": {
+          "direction": "PAY",
+          "amount": {
+            "value": 4425000.0,
+            "currency": "CHF"
+          }
+        },
+        "settlementDate": null
+      }
+    },
+    "dates": {
+      "tradeDate": "2026-09-12",
+      "settlementDate": null
+    }
+  }
+}

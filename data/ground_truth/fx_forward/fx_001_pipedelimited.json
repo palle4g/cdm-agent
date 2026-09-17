@@ -1,0 +1,127 @@
+{
+  "_metadata": {
+    "ground_truth_id": "fx_001",
+    "product_type": "FXForward",
+    "source_format": "pipedelimited",
+    "description": "EUR/USD forward, BUY notional style, pipe-delimited"
+  },
+  "_source": {
+    "raw": "TRD_ID|CPTY_LEI|BUY_CCY|BUY_NOTIONAL|SELL_CCY|SELL_NOTIONAL|VALUE_DATE|TRADE_DATE\nFXF-001|5493001KJTIIGC8Y1R12|EUR|10000000.00|USD|10850000.00|2026-12-18|2026-09-05"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "TRD_ID",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "CPTY_LEI",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "TRADE_DATE",
+      "cdm_path": "tradeDate.date",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "BUY_CCY",
+      "cdm_path": "product.economicTerms.payoutLeg1.amount.currency",
+      "confidence": "HIGH",
+      "transformation": "BUY currency = receive leg"
+    },
+    {
+      "source_field": "BUY_NOTIONAL",
+      "cdm_path": "product.economicTerms.payoutLeg1.amount.value",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "BUY_CCY (direction)",
+      "cdm_path": "product.economicTerms.payoutLeg1.direction",
+      "confidence": "HIGH",
+      "transformation": "BUY -> RECEIVE"
+    },
+    {
+      "source_field": "SELL_CCY",
+      "cdm_path": "product.economicTerms.payoutLeg2.amount.currency",
+      "confidence": "HIGH",
+      "transformation": "SELL currency = pay leg"
+    },
+    {
+      "source_field": "SELL_NOTIONAL",
+      "cdm_path": "product.economicTerms.payoutLeg2.amount.value",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "SELL_CCY (direction)",
+      "cdm_path": "product.economicTerms.payoutLeg2.direction",
+      "confidence": "HIGH",
+      "transformation": "SELL -> PAY"
+    },
+    {
+      "source_field": "VALUE_DATE",
+      "cdm_path": "product.economicTerms.settlementDate",
+      "confidence": "HIGH"
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "FXF-001"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": "2026-09-05"
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "5493001KJTIIGC8Y1R12",
+            "identifierType": "LEI"
+          }
+        ],
+        "name": "ACME ASSET MGMT",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "ForeignExchange.Forward",
+      "economicTerms": {
+        "payoutLeg1": {
+          "direction": "RECEIVE",
+          "amount": {
+            "value": 10000000.0,
+            "currency": "EUR"
+          }
+        },
+        "payoutLeg2": {
+          "direction": "PAY",
+          "amount": {
+            "value": 10850000.0,
+            "currency": "USD"
+          }
+        },
+        "settlementDate": "2026-12-18"
+      }
+    },
+    "dates": {
+      "tradeDate": "2026-09-05",
+      "settlementDate": "2026-12-18"
+    }
+  }
+}
