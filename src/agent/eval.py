@@ -1,18 +1,21 @@
 """
 eval.py
-T-008: Evaluation harness (scalable).
-Scans data/ground_truth/<product>/ for all .json files, reads the raw input
-from each file's _source.raw, runs the agent, and scores against _field_mapping.
+T-008: Evaluation harness (scalable) + wired into T-009 Observation Store.
 
-Adding a ground truth file automatically adds it to the eval. No code changes.
+Every trade run through eval is now also stored permanently in the
+Observation Store (data/observation_store.db) - real conversions, not demo
+data. This works identically for every product, no per-product code.
 
 Usage:
-    python src/agent/eval.py                 (evaluates all products)
-    python src/agent/eval.py GovernmentBond  (evaluates one product)
+    python src/agent/eval.py                              (all products, all files)
+    python src/agent/eval.py FXForward                     (one product, all its files)
+    python src/agent/eval.py FXForward fx_002_JSON.json    (one product, one specific file)
+    python src/agent/eval.py FXForward fx_002              (one product, matches any file starting with fx_002)
 """
 
 import json
 import os
+import re
 import sys
 import glob
 from datetime import datetime
@@ -21,19 +24,48 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from dotenv import load_dotenv
 from ingestion.format_detector import normalize
 from agent.mapping_agent import map_trade, score_against_ground_truth
+from schemas.registry import list_products
+from registry.observation_store import init_db, store_conversion
 from config import GROUND_TRUTH_DIR, EVAL_REPORT_DIR, AGENT_MODEL
 
 load_dotenv()
 
 
-def run_eval_for_product(product_type):
-    """Run eval on every ground truth file for one product."""
-    product_dir = os.path.join(GROUND_TRUTH_DIR, product_type_to_folder(product_type))
-    if not os.path.isdir(product_dir):
-        print("  No folder for " + product_type + " at " + product_dir)
-        return []
+def product_type_to_folder(product_type):
+    """GovernmentBond -> government_bond, FXForward -> fx_forward"""
+    s1 = re.sub(r'(.)([A-Z][a-z]+)', r'\1_\2', product_type)
+    s2 = re.sub(r'([a-z0-9])([A-Z])', r'\1_\2', s1)
+    return s2.lower()
 
+
+def discover_products_with_ground_truth():
+    """For every REGISTERED product type, check if a matching ground truth folder exists."""
+    found = []
+    for product_type in list_products():
+        folder = product_type_to_folder(product_type)
+        full_path = os.path.join(GROUND_TRUTH_DIR, folder)
+        if os.path.isdir(full_path):
+            found.append((product_type, full_path))
+    return found
+
+
+def run_eval_for_product(product_type, product_dir, file_filter=None):
+    """
+    Run eval on ground truth files for one product.
+    Each successful run is stored in the Observation Store (T-009).
+    """
     files = sorted(glob.glob(os.path.join(product_dir, "*.json")))
+
+    if file_filter:
+        if file_filter.endswith(".json"):
+            files = [f for f in files if os.path.basename(f) == file_filter]
+        else:
+            files = [f for f in files if os.path.basename(f).startswith(file_filter)]
+
+        if not files:
+            print("  No ground truth file matching '" + file_filter + "' found in " + product_dir)
+            return []
+
     results = []
 
     for f in files:
@@ -61,54 +93,52 @@ def run_eval_for_product(product_type):
             if not c["correct"]:
                 print("      WRONG: " + c["sourceField"] + " expected " + c["groundTruth"] + " got " + c["agentOutput"])
 
+        # T-009: store this real conversion in the Observation Store.
+        # Same call for every product - product_type is just a data value.
+        conversion_id = store_conversion(product_type, normalized, agent_output, accuracy=score["accuracy"])
+        print("    Stored in Observation Store as conversion id " + str(conversion_id))
+
         results.append({
             "file": name, "accuracy": score["accuracy"],
             "correct": score["correct"], "total": score["total"],
-            "status": "OK", "comparison": score["comparison"]
+            "status": "OK", "comparison": score["comparison"],
+            "conversionId": conversion_id
         })
 
     return results
 
 
-def product_type_to_folder(product_type):
-    """GovernmentBond -> government_bond"""
-    out = ""
-    for i, ch in enumerate(product_type):
-        if ch.isupper() and i > 0:
-            out += "_"
-        out += ch.lower()
-    return out
-
-
-def run_full_eval(only_product=None):
+def run_full_eval(only_product=None, only_file=None):
     print("=" * 60)
     print("CDM MAPPING AGENT - EVALUATION HARNESS (T-008)")
     print("=" * 60)
     print("Started: " + datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
     print("Model:   " + AGENT_MODEL)
-
-    # Discover products from folders under ground_truth
     if only_product:
-        products = [only_product]
-    else:
-        products = []
-        if os.path.isdir(GROUND_TRUTH_DIR):
-            for entry in sorted(os.listdir(GROUND_TRUTH_DIR)):
-                full = os.path.join(GROUND_TRUTH_DIR, entry)
-                if os.path.isdir(full):
-                    # folder government_bond -> GovernmentBond
-                    products.append("".join(p.capitalize() for p in entry.split("_")))
+        print("Filter:  product=" + only_product + (", file=" + only_file if only_file else ""))
+
+    # Make sure the Observation Store exists before we start storing to it
+    init_db()
+
+    discovered = discover_products_with_ground_truth()
+
+    if only_product:
+        discovered = [(p, d) for p, d in discovered if p == only_product]
+        if not discovered:
+            print("No ground truth folder found for product: " + only_product)
+            print("Registered products: " + ", ".join(list_products()))
+            return None
 
     all_results = {}
     total_correct = 0
     total_fields = 0
 
-    for product in products:
+    for product_type, product_dir in discovered:
         print("\n" + "-" * 50)
-        print("PRODUCT: " + product)
+        print("PRODUCT: " + product_type)
         print("-" * 50)
-        results = run_eval_for_product(product)
-        all_results[product] = results
+        results = run_eval_for_product(product_type, product_dir, file_filter=only_file)
+        all_results[product_type] = results
         for r in results:
             total_correct += r.get("correct", 0)
             total_fields += r.get("total", 0)
@@ -126,21 +156,24 @@ def run_full_eval(only_product=None):
             mark = "PASS" if (r.get("correct", 0) == r.get("total", 0) and r.get("total", 0) > 0) else "PARTIAL"
             print("    " + mark + " | " + r["file"] + " | " + r.get("accuracy", "0%"))
 
-    report = {
-        "runAt": datetime.now().isoformat(),
-        "model": AGENT_MODEL,
-        "overallAccuracy": str(overall) + "%",
-        "totalCorrect": total_correct,
-        "totalFields": total_fields,
-        "products": all_results
-    }
-    report_path = os.path.join(EVAL_REPORT_DIR, "eval_report_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".json")
-    with open(report_path, "w") as f:
-        json.dump(report, f, indent=2)
-    print("\nFull report saved: " + report_path)
-    return report
+    if not only_file:
+        report = {
+            "runAt": datetime.now().isoformat(),
+            "model": AGENT_MODEL,
+            "overallAccuracy": str(overall) + "%",
+            "totalCorrect": total_correct,
+            "totalFields": total_fields,
+            "products": all_results
+        }
+        report_path = os.path.join(EVAL_REPORT_DIR, "eval_report_" + datetime.now().strftime("%Y%m%d_%H%M%S") + ".json")
+        with open(report_path, "w") as f:
+            json.dump(report, f, indent=2)
+        print("\nFull report saved: " + report_path)
+
+    return {"overallAccuracy": overall, "products": all_results}
 
 
 if __name__ == "__main__":
-    only = sys.argv[1] if len(sys.argv) > 1 else None
-    run_full_eval(only)
+    only_product = sys.argv[1] if len(sys.argv) > 1 else None
+    only_file = sys.argv[2] if len(sys.argv) > 2 else None
+    run_full_eval(only_product, only_file)

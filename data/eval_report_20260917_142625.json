@@ -1,0 +1,218 @@
+{
+  "runAt": "2026-09-17T14:26:25.223005",
+  "model": "claude-sonnet-4-6",
+  "overallAccuracy": "100.0%",
+  "totalCorrect": 30,
+  "totalFields": 30,
+  "products": {
+    "FXForward": [
+      {
+        "file": "fx_001_pipedelimited.json",
+        "accuracy": "100.0%",
+        "correct": 10,
+        "total": 10,
+        "status": "OK",
+        "comparison": [
+          {
+            "sourceField": "TRD_ID",
+            "groundTruth": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+            "agentOutput": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+            "correct": true
+          },
+          {
+            "sourceField": "CPTY_LEI",
+            "groundTruth": "party[1].partyId[0].identifier",
+            "agentOutput": "party[1].partyId[0].identifier",
+            "correct": true
+          },
+          {
+            "sourceField": "TRADE_DATE",
+            "groundTruth": "tradeDate.date",
+            "agentOutput": "tradeDate.date",
+            "correct": true
+          },
+          {
+            "sourceField": "BUY_CCY",
+            "groundTruth": "product.economicTerms.payoutLeg1.amount.currency",
+            "agentOutput": "product.economicTerms.payoutLeg1.amount.currency",
+            "correct": true
+          },
+          {
+            "sourceField": "BUY_NOTIONAL",
+            "groundTruth": "product.economicTerms.payoutLeg1.amount.value",
+            "agentOutput": "product.economicTerms.payoutLeg1.amount.value",
+            "correct": true
+          },
+          {
+            "sourceField": "BUY_CCY (direction)",
+            "groundTruth": "product.economicTerms.payoutLeg1.direction",
+            "agentOutput": "product.economicTerms.payoutLeg1.direction",
+            "correct": true
+          },
+          {
+            "sourceField": "SELL_CCY",
+            "groundTruth": "product.economicTerms.payoutLeg2.amount.currency",
+            "agentOutput": "product.economicTerms.payoutLeg2.amount.currency",
+            "correct": true
+          },
+          {
+            "sourceField": "SELL_NOTIONAL",
+            "groundTruth": "product.economicTerms.payoutLeg2.amount.value",
+            "agentOutput": "product.economicTerms.payoutLeg2.amount.value",
+            "correct": true
+          },
+          {
+            "sourceField": "SELL_CCY (direction)",
+            "groundTruth": "product.economicTerms.payoutLeg2.direction",
+            "agentOutput": "product.economicTerms.payoutLeg2.direction",
+            "correct": true
+          },
+          {
+            "sourceField": "VALUE_DATE",
+            "groundTruth": "product.economicTerms.settlementDate",
+            "agentOutput": "product.economicTerms.settlementDate",
+            "correct": true
+          }
+        ]
+      },
+      {
+        "file": "fx_002_JSON.json",
+        "accuracy": "100.0%",
+        "correct": 10,
+        "total": 10,
+        "status": "OK",
+        "comparison": [
+          {
+            "sourceField": "deal_ref",
+            "groundTruth": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+            "agentOutput": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+            "correct": true
+          },
+          {
+            "sourceField": "client_lei",
+            "groundTruth": "party[1].partyId[0].identifier",
+            "agentOutput": "party[1].partyId[0].identifier",
+            "correct": true
+          },
+          {
+            "sourceField": "booking_date",
+            "groundTruth": "tradeDate.date",
+            "agentOutput": "tradeDate.date",
+            "correct": true
+          },
+          {
+            "sourceField": "base_amount",
+            "groundTruth": "product.economicTerms.payoutLeg2.amount.value",
+            "agentOutput": "product.economicTerms.payoutLeg2.amount.value",
+            "correct": true
+          },
+          {
+            "sourceField": "ccy_pair (base)",
+            "groundTruth": "product.economicTerms.payoutLeg2.amount.currency",
+            "agentOutput": "product.economicTerms.payoutLeg2.amount.currency",
+            "correct": true
+          },
+          {
+            "sourceField": "direction (leg2)",
+            "groundTruth": "product.economicTerms.payoutLeg2.direction",
+            "agentOutput": "product.economicTerms.payoutLeg2.direction",
+            "correct": true
+          },
+          {
+            "sourceField": "quote_amount",
+            "groundTruth": "product.economicTerms.payoutLeg1.amount.value",
+            "agentOutput": "product.economicTerms.payoutLeg1.amount.value",
+            "correct": true
+          },
+          {
+            "sourceField": "ccy_pair (quote)",
+            "groundTruth": "product.economicTerms.payoutLeg1.amount.currency",
+            "agentOutput": "product.economicTerms.payoutLeg1.amount.currency",
+            "correct": true
+          },
+          {
+            "sourceField": "direction (leg1)",
+            "groundTruth": "product.economicTerms.payoutLeg1.direction",
+            "agentOutput": "product.economicTerms.payoutLeg1.direction",
+            "correct": true
+          },
+          {
+            "sourceField": "settle",
+            "groundTruth": "product.economicTerms.settlementDate",
+            "agentOutput": "product.economicTerms.settlementDate",
+            "correct": true
+          }
+        ]
+      },
+      {
+        "file": "fx_003_fixedwidth.json",
+        "accuracy": "100.0%",
+        "correct": 10,
+        "total": 10,
+        "status": "OK",
+        "comparison": [
+          {
+            "sourceField": "TRD_ID",
+            "groundTruth": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+            "agentOutput": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+            "correct": true
+          },
+          {
+            "sourceField": "CPTY",
+            "groundTruth": "party[1].partyId[0].identifier",
+            "agentOutput": "party[1].partyId[0].identifier",
+            "correct": true
+          },
+          {
+            "sourceField": "TRADE_DT",
+            "groundTruth": "tradeDate.date",
+            "agentOutput": "tradeDate.date",
+            "correct": true
+          },
+          {
+            "sourceField": "BUY_CCY",
+            "groundTruth": "product.economicTerms.payoutLeg1.amount.currency",
+            "agentOutput": "product.economicTerms.payoutLeg1.amount.currency",
+            "correct": true
+          },
+          {
+            "sourceField": "BUY_AMT",
+            "groundTruth": "product.economicTerms.payoutLeg1.amount.value",
+            "agentOutput": "product.economicTerms.payoutLeg1.amount.value",
+            "correct": true
+          },
+          {
+            "sourceField": "BUY_CCY (direction)",
+            "groundTruth": "product.economicTerms.payoutLeg1.direction",
+            "agentOutput": "product.economicTerms.payoutLeg1.direction",
+            "correct": true
+          },
+          {
+            "sourceField": "SELL_CCY",
+            "groundTruth": "product.economicTerms.payoutLeg2.amount.currency",
+            "agentOutput": "product.economicTerms.payoutLeg2.amount.currency",
+            "correct": true
+          },
+          {
+            "sourceField": "SELL_AMT",
+            "groundTruth": "product.economicTerms.payoutLeg2.amount.value",
+            "agentOutput": "product.economicTerms.payoutLeg2.amount.value",
+            "correct": true
+          },
+          {
+            "sourceField": "SELL_CCY (direction)",
+            "groundTruth": "product.economicTerms.payoutLeg2.direction",
+            "agentOutput": "product.economicTerms.payoutLeg2.direction",
+            "correct": true
+          },
+          {
+            "sourceField": "settlementDate (inferred)",
+            "groundTruth": "product.economicTerms.settlementDate",
+            "agentOutput": "product.economicTerms.settlementDate",
+            "correct": true
+          }
+        ]
+      }
+    ]
+  }
+}
