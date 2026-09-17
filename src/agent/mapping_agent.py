@@ -1,6 +1,7 @@
 """
 mapping_agent.py
 T-005: The CDM mapping agent.
+Updated: Added explicit scheme mapping rule for security identifiers.
 """
 
 import json
@@ -25,8 +26,8 @@ TARGET CDM FIELDS - map every source field to one of these exact paths:
 tradeIdentifier[0].assignedIdentifier[0].identifier - Unique trade ID
 tradeDate.date - Date trade was executed YYYY-MM-DD
 party[1].partyId[0].identifier - Counterparty identifier
-product.productIdentifier[0].identifier - ISIN CUSIP or SEDOL
-product.productIdentifier[0].source - ID scheme ISIN CUSIP SEDOL
+product.productIdentifier[0].identifier - ISIN CUSIP or SEDOL value
+product.productIdentifier[0].source - ID scheme: ISIN, CUSIP, or SEDOL
 product.economicTerms.effectiveDate.adjustableDate.unadjustedDate - Settlement date
 product.economicTerms.terminationDate.adjustableDate.unadjustedDate - Maturity date
 product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount - Face value
@@ -43,17 +44,20 @@ CRITICAL TRANSFORMATION RULES:
 4. QUARTERLY or Q maps to period=M periodMultiplier=3
 5. ACT/ACT or ACT/ACT ICMA maps to ACT/ACT.ICMA
 6. BUY or B or PURCHASE maps to payer=Party2 receiver=Party1
-7. SELL or S or SALE maps to payer=Party1 receiver=Party2
+7. SELL or SALE maps to payer=Party1 receiver=Party2
 8. Date format YYYYMMDD with no dashes converts to YYYY-MM-DD
 9. Currency: if not present infer from ISIN prefix. US=USD GB=GBP DE=EUR
+10. SECURITY IDENTIFIER RULE - always produce TWO separate fieldMapping entries for any security identifier field (ISIN, CUSIP, SEDOL, SEC_ID, security, BOND_ID etc):
+    Entry 1: sourceField=<FIELD_NAME>, cdmPath=product.productIdentifier[0].identifier, confidence=HIGH
+    Entry 2: sourceField=<FIELD_NAME> (scheme), cdmPath=product.productIdentifier[0].source, confidence=HIGH, transformation=infer scheme from field name or value format
 
 IMPORTANT FOR FIELD MAPPING OUTPUT:
 - Use the exact full CDM paths shown above
-- For FREQ use ONE entry: product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency
-- For SIDE use ONE entry: product.economicTerms.payout[0].interestRatePayout.payerReceiver
-- For ISIN use ONE entry: product.productIdentifier[0].identifier
+- For FREQ use ONE entry with cdmPath: product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency
+- For SIDE use ONE entry with cdmPath: product.economicTerms.payout[0].interestRatePayout.payerReceiver
+- For ISIN or any security identifier use TWO entries as described in rule 10 above
 
-OUTPUT: respond with valid JSON only, no markdown, no backticks, no explanation.
+OUTPUT: respond with valid JSON only, no markdown, no backticks. Start response with {
 
 {
   "productTypeDetected": "Rates.GovernmentBond",
@@ -93,6 +97,8 @@ OUTPUT: respond with valid JSON only, no markdown, no backticks, no explanation.
     }
   },
   "fieldMapping": [
+    {"sourceField": "ISIN", "cdmPath": "product.productIdentifier[0].identifier", "confidence": "HIGH", "transformation": "direct mapping"},
+    {"sourceField": "ISIN (scheme)", "cdmPath": "product.productIdentifier[0].source", "confidence": "HIGH", "transformation": "inferred ISIN from field name"},
     {"sourceField": "...", "cdmPath": "...", "confidence": "HIGH", "transformation": "..."}
   ],
   "mappingNotes": ["any ambiguities or assumptions made"],
@@ -102,9 +108,18 @@ OUTPUT: respond with valid JSON only, no markdown, no backticks, no explanation.
 
 
 def map_trade(normalized_fields, product_type="GovernmentBond"):
+    """
+    Core mapping function.
+    Takes a normalized dictionary and returns a CDM mapping.
+    """
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     fields_text = json.dumps(normalized_fields, indent=2)
-    user_message = "Map this legacy trade data to CDM format.\n\nSOURCE DATA:\n" + fields_text + "\n\nRespond with valid JSON only."
+    user_message = (
+        "Map this legacy trade data to CDM format.\n\n"
+        "SOURCE DATA:\n" + fields_text + "\n\n"
+        "Remember rule 10: for any security identifier produce TWO fieldMapping entries.\n"
+        "Return raw JSON only. Start your response with {"
+    )
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
@@ -114,10 +129,15 @@ def map_trade(normalized_fields, product_type="GovernmentBond"):
     )
 
     raw_text = response.content[0].text.strip()
-    if raw_text.startswith("```"):
-        raw_text = raw_text.split("```")[1]
-        if raw_text.startswith("json"):
-            raw_text = raw_text[4:]
+    if "```" in raw_text:
+        parts = raw_text.split("```")
+        for part in parts:
+            part = part.strip()
+            if part.startswith("json"):
+                part = part[4:].strip()
+            if part.startswith("{"):
+                raw_text = part
+                break
     raw_text = raw_text.strip()
 
     try:
@@ -130,6 +150,10 @@ def map_trade(normalized_fields, product_type="GovernmentBond"):
 
 
 def score_against_ground_truth(agent_output, ground_truth_path):
+    """
+    Compare agent output against ground truth.
+    Uses best-match scoring.
+    """
     with open(ground_truth_path, "r") as f:
         ground_truth = json.load(f)
 
@@ -177,7 +201,12 @@ def score_against_ground_truth(agent_output, ground_truth_path):
         })
 
     accuracy = round((correct / total * 100), 1) if total > 0 else 0
-    return {"accuracy": str(accuracy) + "%", "correct": correct, "total": total, "comparison": comparison}
+    return {
+        "accuracy": str(accuracy) + "%",
+        "correct": correct,
+        "total": total,
+        "comparison": comparison
+    }
 
 
 if __name__ == "__main__":
@@ -185,7 +214,7 @@ if __name__ == "__main__":
     sample_a = "TRADE_NUM|SEC_ID|ISIN|SEC_DESC|SIDE|QTY|PRICE|YIELD|ACCRUED_INT|SETTLE_AMT|CPTY_CODE|TRADE_DT|SETTLE_DT|MATURE_DT|COUPON|FREQ|DAY_COUNT\nTB-20260914-001|UST-10Y|US91282CJL54|US TREASURY 4.25% 08/2034|BUY|10000000|98.750|4.42|21250.00|9896250.00|JPMORGAN|2026-09-14|2026-09-16|2034-08-15|4.25|SEMI|ACT/ACT"
 
     print("=" * 60)
-    print("CDM MAPPING AGENT - T-005 Test")
+    print("CDM MAPPING AGENT - T-005 Test (with scheme fix)")
     print("=" * 60)
 
     print("\nStep 1: Detecting format and normalizing...")
@@ -200,10 +229,6 @@ if __name__ == "__main__":
         print("ERROR: " + result["error"])
     else:
         print("Product detected: " + str(result.get("productTypeDetected")))
-        print("Source format: " + str(result.get("_sourceFormat")))
-
-        print("\n--- CDM Trade Output ---")
-        print(json.dumps(result.get("cdmTrade", {}), indent=2))
 
         print("\n--- Field Mappings ---")
         for fm in result.get("fieldMapping", []):
@@ -215,18 +240,6 @@ if __name__ == "__main__":
                 print("  [" + conf + "] " + src + " -> " + cdm + " [" + trans + "]")
             else:
                 print("  [" + conf + "] " + src + " -> " + cdm)
-
-        notes = result.get("mappingNotes", [])
-        if notes:
-            print("\n--- Agent Notes ---")
-            for note in notes:
-                print("  - " + note)
-
-        missing = result.get("missingFields", [])
-        if missing:
-            print("\n--- Missing Fields ---")
-            for field in missing:
-                print("  MISSING: " + field)
 
         print("\nStep 3: Scoring against ground truth...")
         gt_path = "data/ground_truth/ground_truth_A.json"
