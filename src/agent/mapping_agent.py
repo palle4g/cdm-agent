@@ -1,7 +1,7 @@
 """
 mapping_agent.py
 T-005: The CDM mapping agent.
-Updated: Added explicit scheme mapping rule for security identifiers.
+Updated: Added reason and missingSourceField to inferred fieldMapping entries.
 """
 
 import json
@@ -46,79 +46,70 @@ CRITICAL TRANSFORMATION RULES:
 6. BUY or B or PURCHASE maps to payer=Party2 receiver=Party1
 7. SELL or SALE maps to payer=Party1 receiver=Party2
 8. Date format YYYYMMDD with no dashes converts to YYYY-MM-DD
-9. Currency: if not present infer from ISIN prefix. US=USD GB=GBP DE=EUR
+9. Currency: if not present infer from ISIN prefix. US=USD GB=GBP DE=EUR JP=JPY
 10. SECURITY IDENTIFIER RULE - always produce TWO separate fieldMapping entries for any security identifier field (ISIN, CUSIP, SEDOL, SEC_ID, security, BOND_ID etc):
-    Entry 1: sourceField=<FIELD_NAME>, cdmPath=product.productIdentifier[0].identifier, confidence=HIGH
-    Entry 2: sourceField=<FIELD_NAME> (scheme), cdmPath=product.productIdentifier[0].source, confidence=HIGH, transformation=infer scheme from field name or value format
+    Entry 1: sourceField=<FIELD_NAME>, cdmPath=product.productIdentifier[0].identifier, confidence=HIGH, missingSourceField=false
+    Entry 2: sourceField=<FIELD_NAME> (scheme), cdmPath=product.productIdentifier[0].source, confidence=HIGH, missingSourceField=false,
+             reason="Scheme inferred from field name and identifier format. Field name contains ISIN/CUSIP/SEDOL or identifier matches known format (12-char alphanumeric = ISIN)."
+11. CURRENCY INFERENCE RULE - if no explicit currency field exists in source data, produce this fieldMapping entry:
+    sourceField="currency (inferred)"
+    cdmPath=product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency
+    confidence=MEDIUM
+    missingSourceField=true
+    transformation="inferred from ISIN country prefix"
+    reason="No explicit currency field present in source data. Currency derived from ISIN country prefix (US=USD, GB=GBP, DE=EUR, JP=JPY). Human review recommended if ISIN country does not match settlement currency."
+    This entry is REQUIRED even when currency is not in source. Never omit it.
+12. DAY COUNT INFERENCE RULE - if no explicit day count field exists in source data, produce this fieldMapping entry:
+    sourceField="day_count (inferred)"
+    cdmPath=product.economicTerms.payout[0].interestRatePayout.dayCountFraction
+    confidence=MEDIUM
+    missingSourceField=true
+    transformation="defaulted to ACT/ACT.ICMA"
+    reason="No day count convention field present in source data. Defaulted to ACT/ACT.ICMA which is the standard convention for government bonds per ICMA guidelines. Human review recommended for non-standard instruments."
+    This entry is REQUIRED even when day count is not in source. Never omit it.
 
-IMPORTANT FOR FIELD MAPPING OUTPUT:
-- Use the exact full CDM paths shown above
-- For FREQ use ONE entry with cdmPath: product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency
-- For SIDE use ONE entry with cdmPath: product.economicTerms.payout[0].interestRatePayout.payerReceiver
-- For ISIN or any security identifier use TWO entries as described in rule 10 above
+FIELDMAPPING ENTRY STRUCTURE:
+Every fieldMapping entry must include these fields:
+- sourceField: name of the source field (or descriptive name for inferred fields)
+- cdmPath: exact CDM path
+- confidence: HIGH, MEDIUM, or LOW
+- transformation: what was done to the value (or "direct mapping" if unchanged)
+- missingSourceField: true if this field was not present in source data, false if it was
+- reason: (REQUIRED for any entry where missingSourceField=true or confidence is MEDIUM or LOW)
+  The reason must explain in plain English:
+  1. Why the field was missing or ambiguous
+  2. How the value was derived or inferred
+  3. What a human reviewer should check
 
-OUTPUT: respond with valid JSON only, no markdown, no backticks. Start response with {
+For directly mapped HIGH confidence fields, reason is optional but transformation is always required.
 
-{
-  "productTypeDetected": "Rates.GovernmentBond",
-  "cdmTrade": {
-    "tradeIdentifier": [{"assignedIdentifier": [{"identifier": "..."}]}],
-    "tradeDate": {"date": "YYYY-MM-DD"},
-    "party": [
-      {"partyId": [{"identifier": "OUR-BANK", "identifierType": "INTERNAL"}], "name": "OUR BANK PLC", "role": "OUR_BANK"},
-      {"partyId": [{"identifier": "...", "identifierType": "INTERNAL"}], "name": "...", "role": "COUNTERPARTY"}
-    ],
-    "product": {
-      "productType": "Rates.GovernmentBond",
-      "productIdentifier": [{"identifier": "...", "source": "ISIN"}],
-      "economicTerms": {
-        "effectiveDate": {"adjustableDate": {"unadjustedDate": "YYYY-MM-DD"}},
-        "terminationDate": {"adjustableDate": {"unadjustedDate": "YYYY-MM-DD"}},
-        "payout": [{
-          "interestRatePayout": {
-            "payerReceiver": {"payer": "Party2", "receiver": "Party1"},
-            "rateSpecification": {"fixedRate": {"rateSchedule": {"initialValue": 0.0000}}},
-            "dayCountFraction": "ACT/ACT.ICMA",
-            "calculationPeriodDates": {
-              "terminationDate": {"adjustableDate": {"unadjustedDate": "YYYY-MM-DD"}},
-              "calculationPeriodFrequency": {"period": "M", "periodMultiplier": 6}
-            },
-            "principalPayment": {
-              "principalAmount": {"amount": 0, "unit": {"currency": "USD"}}
-            }
-          }
-        }]
-      }
-    },
-    "dates": {
-      "tradeDate": "YYYY-MM-DD",
-      "settlementDate": "YYYY-MM-DD",
-      "maturityDate": "YYYY-MM-DD"
-    }
-  },
-  "fieldMapping": [
-    {"sourceField": "ISIN", "cdmPath": "product.productIdentifier[0].identifier", "confidence": "HIGH", "transformation": "direct mapping"},
-    {"sourceField": "ISIN (scheme)", "cdmPath": "product.productIdentifier[0].source", "confidence": "HIGH", "transformation": "inferred ISIN from field name"},
-    {"sourceField": "...", "cdmPath": "...", "confidence": "HIGH", "transformation": "..."}
-  ],
-  "mappingNotes": ["any ambiguities or assumptions made"],
-  "missingFields": ["list of required CDM fields not found in source"]
-}
+OUTPUT: respond with valid JSON only. No markdown. No backticks. Start response with {
 """
 
 
 def map_trade(normalized_fields, product_type="GovernmentBond"):
-    """
-    Core mapping function.
-    Takes a normalized dictionary and returns a CDM mapping.
-    """
+    """Core mapping function."""
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     fields_text = json.dumps(normalized_fields, indent=2)
+
+    has_currency = any(k.lower() in ["currency", "ccy", "bond_ccy", "settle_ccy"] for k in normalized_fields.keys())
+    has_day_count = any(k.lower() in ["day_count", "dcf", "day_cnt", "basis", "day_count_basis"] for k in normalized_fields.keys())
+
+    reminders = []
+    if not has_currency:
+        reminders.append("No currency field in source - apply rule 11: add currency (inferred) entry with missingSourceField=true and full reason")
+    if not has_day_count:
+        reminders.append("No day count field in source - apply rule 12: add day_count (inferred) entry with missingSourceField=true and full reason")
+
+    reminder_text = ""
+    if reminders:
+        reminder_text = "\n\nREMINDERS FOR THIS INPUT:\n" + "\n".join(["- " + r for r in reminders])
+
     user_message = (
         "Map this legacy trade data to CDM format.\n\n"
-        "SOURCE DATA:\n" + fields_text + "\n\n"
-        "Remember rule 10: for any security identifier produce TWO fieldMapping entries.\n"
-        "Return raw JSON only. Start your response with {"
+        "SOURCE DATA:\n" + fields_text +
+        reminder_text +
+        "\n\nApply rules 10, 11, 12. Include reason field on all inferred or MEDIUM/LOW confidence entries. Return raw JSON only. Start with {"
     )
 
     response = client.messages.create(
@@ -150,10 +141,7 @@ def map_trade(normalized_fields, product_type="GovernmentBond"):
 
 
 def score_against_ground_truth(agent_output, ground_truth_path):
-    """
-    Compare agent output against ground truth.
-    Uses best-match scoring.
-    """
+    """Compare agent output against ground truth using best-match scoring."""
     with open(ground_truth_path, "r") as f:
         ground_truth = json.load(f)
 
@@ -211,48 +199,47 @@ def score_against_ground_truth(agent_output, ground_truth_path):
 
 if __name__ == "__main__":
 
-    sample_a = "TRADE_NUM|SEC_ID|ISIN|SEC_DESC|SIDE|QTY|PRICE|YIELD|ACCRUED_INT|SETTLE_AMT|CPTY_CODE|TRADE_DT|SETTLE_DT|MATURE_DT|COUPON|FREQ|DAY_COUNT\nTB-20260914-001|UST-10Y|US91282CJL54|US TREASURY 4.25% 08/2034|BUY|10000000|98.750|4.42|21250.00|9896250.00|JPMORGAN|2026-09-14|2026-09-16|2034-08-15|4.25|SEMI|ACT/ACT"
+    # Test with Sample C (fixed-width) since it has the most inferred fields
+    sample_c = "TRADE_ID  ISIN          SIDE QTY        PRICE    COUPON FREQ MAT_DATE   CPTY\nTB0091234 US91282CJL54  B    10000000   98.7500  4.2500 S    20340815   BARC"
 
     print("=" * 60)
-    print("CDM MAPPING AGENT - T-005 Test (with scheme fix)")
+    print("CDM MAPPING AGENT - Testing inferred field reasons")
+    print("Sample C (fixed-width) - most inferred fields")
     print("=" * 60)
 
-    print("\nStep 1: Detecting format and normalizing...")
-    normalized = normalize(sample_a)
-    print("Format detected: " + normalized.get("_format", "UNKNOWN"))
-    print("Fields found: " + str(len(normalized) - 1))
+    normalized = normalize(sample_c)
+    print("Format: " + normalized.get("_format", "UNKNOWN"))
+    print("Fields: " + str(len(normalized) - 1))
 
-    print("\nStep 2: Running mapping agent...")
+    print("\nRunning agent...")
     result = map_trade(normalized)
 
     if "error" in result:
         print("ERROR: " + result["error"])
     else:
-        print("Product detected: " + str(result.get("productTypeDetected")))
-
-        print("\n--- Field Mappings ---")
+        print("\n--- Field Mappings (showing inferred fields) ---")
         for fm in result.get("fieldMapping", []):
-            conf = fm.get("confidence", "?")
             src = fm.get("sourceField", "?")
             cdm = fm.get("cdmPath", "?")
+            conf = fm.get("confidence", "?")
+            missing = fm.get("missingSourceField", False)
+            reason = fm.get("reason", "")
             trans = fm.get("transformation", "")
-            if trans:
-                print("  [" + conf + "] " + src + " -> " + cdm + " [" + trans + "]")
-            else:
-                print("  [" + conf + "] " + src + " -> " + cdm)
 
-        print("\nStep 3: Scoring against ground truth...")
-        gt_path = "data/ground_truth/ground_truth_A.json"
+            print("\n  [" + conf + "] " + src)
+            print("    -> " + cdm)
+            if trans:
+                print("    Transformation: " + trans)
+            if missing:
+                print("    INFERRED (not in source)")
+            if reason:
+                print("    Reason: " + reason)
+
+        print("\nScoring against ground truth...")
+        gt_path = "data/ground_truth/ground_truth_C.json"
         if os.path.exists(gt_path):
             score = score_against_ground_truth(result, gt_path)
-            print("\n  Accuracy: " + score["accuracy"] + " (" + str(score["correct"]) + "/" + str(score["total"]) + " fields correct)")
-            print("\n  Field-by-field:")
+            print("Accuracy: " + score["accuracy"] + " (" + str(score["correct"]) + "/" + str(score["total"]) + ")")
             for c in score["comparison"]:
-                if c["correct"]:
-                    print("  CORRECT: " + c["sourceField"])
-                else:
-                    print("  WRONG:   " + c["sourceField"])
-                    print("      Expected: " + c["groundTruth"])
-                    print("      Got:      " + c["agentOutput"])
-        else:
-            print("  Ground truth file not found - skipping scoring")
+                status = "CORRECT" if c["correct"] else "WRONG"
+                print("  " + status + ": " + c["sourceField"])

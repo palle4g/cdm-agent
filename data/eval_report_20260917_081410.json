@@ -1,0 +1,257 @@
+{
+  "runAt": "2026-09-17T08:14:10.722630",
+  "overallAccuracy": "100.0%",
+  "totalCorrect": 36,
+  "totalFields": 36,
+  "cases": [
+    {
+      "id": "GT-BOND-001",
+      "label": "Sample A - pipe-delimited",
+      "sourceFormat": "CSV",
+      "status": "OK",
+      "accuracy": "100.0%",
+      "correct": 12,
+      "total": 12,
+      "comparison": [
+        {
+          "sourceField": "TRADE_NUM",
+          "groundTruth": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+          "agentOutput": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+          "correct": true
+        },
+        {
+          "sourceField": "TRADE_DT",
+          "groundTruth": "tradeDate.date",
+          "agentOutput": "tradeDate.date",
+          "correct": true
+        },
+        {
+          "sourceField": "ISIN",
+          "groundTruth": "product.productIdentifier[0].identifier",
+          "agentOutput": "product.productIdentifier[0].identifier",
+          "correct": true
+        },
+        {
+          "sourceField": "ISIN (scheme)",
+          "groundTruth": "product.productIdentifier[0].source",
+          "agentOutput": "product.productIdentifier[0].source",
+          "correct": true
+        },
+        {
+          "sourceField": "CPTY_CODE",
+          "groundTruth": "party[1].partyId[0].identifier",
+          "agentOutput": "party[1].partyId[0].identifier",
+          "correct": true
+        },
+        {
+          "sourceField": "SETTLE_DT",
+          "groundTruth": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+          "agentOutput": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+          "correct": true
+        },
+        {
+          "sourceField": "MATURE_DT",
+          "groundTruth": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+          "agentOutput": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+          "correct": true
+        },
+        {
+          "sourceField": "QTY",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+          "correct": true
+        },
+        {
+          "sourceField": "COUPON",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+          "correct": true
+        },
+        {
+          "sourceField": "FREQ",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+          "correct": true
+        },
+        {
+          "sourceField": "DAY_COUNT",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+          "correct": true
+        },
+        {
+          "sourceField": "SIDE",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "GT-BOND-002",
+      "label": "Sample B - JSON",
+      "sourceFormat": "JSON",
+      "status": "OK",
+      "accuracy": "100.0%",
+      "correct": 13,
+      "total": 13,
+      "comparison": [
+        {
+          "sourceField": "deal_id",
+          "groundTruth": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+          "agentOutput": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+          "correct": true
+        },
+        {
+          "sourceField": "trade_date",
+          "groundTruth": "tradeDate.date",
+          "agentOutput": "tradeDate.date",
+          "correct": true
+        },
+        {
+          "sourceField": "security",
+          "groundTruth": "product.productIdentifier[0].identifier",
+          "agentOutput": "product.productIdentifier[0].identifier",
+          "correct": true
+        },
+        {
+          "sourceField": "security (scheme)",
+          "groundTruth": "product.productIdentifier[0].source",
+          "agentOutput": "product.productIdentifier[0].source",
+          "correct": true
+        },
+        {
+          "sourceField": "counterparty_lei",
+          "groundTruth": "party[1].partyId[0].identifier",
+          "agentOutput": "party[1].partyId[0].identifier",
+          "correct": true
+        },
+        {
+          "sourceField": "settlement_date",
+          "groundTruth": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+          "agentOutput": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+          "correct": true
+        },
+        {
+          "sourceField": "maturity_date",
+          "groundTruth": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+          "agentOutput": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+          "correct": true
+        },
+        {
+          "sourceField": "face_value",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+          "correct": true
+        },
+        {
+          "sourceField": "currency",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+          "correct": true
+        },
+        {
+          "sourceField": "coupon_rate",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+          "correct": true
+        },
+        {
+          "sourceField": "payment_frequency",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+          "correct": true
+        },
+        {
+          "sourceField": "day_count_basis",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+          "correct": true
+        },
+        {
+          "sourceField": "transaction_type",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+          "correct": true
+        }
+      ]
+    },
+    {
+      "id": "GT-BOND-003",
+      "label": "Sample C - fixed-width",
+      "sourceFormat": "FIXED_WIDTH",
+      "status": "OK",
+      "accuracy": "100.0%",
+      "correct": 11,
+      "total": 11,
+      "comparison": [
+        {
+          "sourceField": "TRADE_ID",
+          "groundTruth": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+          "agentOutput": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+          "correct": true
+        },
+        {
+          "sourceField": "ISIN",
+          "groundTruth": "product.productIdentifier[0].identifier",
+          "agentOutput": "product.productIdentifier[0].identifier",
+          "correct": true
+        },
+        {
+          "sourceField": "ISIN (scheme)",
+          "groundTruth": "product.productIdentifier[0].source",
+          "agentOutput": "product.productIdentifier[0].source",
+          "correct": true
+        },
+        {
+          "sourceField": "CPTY",
+          "groundTruth": "party[1].partyId[0].identifier",
+          "agentOutput": "party[1].partyId[0].identifier",
+          "correct": true
+        },
+        {
+          "sourceField": "MAT_DATE",
+          "groundTruth": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+          "agentOutput": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+          "correct": true
+        },
+        {
+          "sourceField": "QTY",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+          "correct": true
+        },
+        {
+          "sourceField": "currency (inferred)",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+          "correct": true
+        },
+        {
+          "sourceField": "COUPON",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+          "correct": true
+        },
+        {
+          "sourceField": "FREQ",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+          "correct": true
+        },
+        {
+          "sourceField": "day_count (inferred)",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+          "correct": true
+        },
+        {
+          "sourceField": "SIDE",
+          "groundTruth": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+          "agentOutput": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+          "correct": true
+        }
+      ]
+    }
+  ]
+}
