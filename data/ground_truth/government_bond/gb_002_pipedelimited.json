@@ -1,0 +1,182 @@
+{
+  "_metadata": {
+    "ground_truth_id": "gb_002",
+    "product_type": "GovernmentBond.FixedRate",
+    "source_format": "pipe-delimited",
+    "description": "German Bund, EUR, annual, 30/360, BUY"
+  },
+  "_source": {
+    "raw": "TRADE_NUM|ISIN|SIDE|QTY|CCY|CPTY_CODE|TRADE_DT|SETTLE_DT|MATURE_DT|COUPON|FREQ|DAY_COUNT\nGB002|DE0001102580|BUY|5000000|EUR|DEUTSCHE|2026-09-14|2026-09-16|2033-05-15|2.30|ANNUAL|30/360"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "TRADE_NUM",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "TRADE_DT",
+      "cdm_path": "tradeDate.date",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "ISIN",
+      "cdm_path": "product.productIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "ISIN (scheme)",
+      "cdm_path": "product.productIdentifier[0].source",
+      "confidence": "HIGH",
+      "reason": "Scheme inferred from field name and 12-char format"
+    },
+    {
+      "source_field": "CPTY_CODE",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "SETTLE_DT",
+      "cdm_path": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "MATURE_DT",
+      "cdm_path": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "QTY",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "CCY",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "COUPON",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+      "confidence": "HIGH",
+      "transformation": "2.30/100=0.023"
+    },
+    {
+      "source_field": "FREQ",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "ANNUAL->Y,1"
+    },
+    {
+      "source_field": "DAY_COUNT",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+      "confidence": "HIGH",
+      "transformation": "30/360->30/360"
+    },
+    {
+      "source_field": "SIDE",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+      "confidence": "HIGH",
+      "transformation": "BUY->payer=Party2,receiver=Party1"
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "GB002"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": "2026-09-14"
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "DEUTSCHE",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "DEUTSCHE BANK",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "Rates.GovernmentBond",
+      "productIdentifier": [
+        {
+          "identifier": "DE0001102580",
+          "source": "ISIN"
+        }
+      ],
+      "economicTerms": {
+        "effectiveDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2026-09-16"
+          }
+        },
+        "terminationDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2033-05-15"
+          }
+        },
+        "payout": [
+          {
+            "interestRatePayout": {
+              "payerReceiver": {
+                "payer": "Party2",
+                "receiver": "Party1"
+              },
+              "rateSpecification": {
+                "fixedRate": {
+                  "rateSchedule": {
+                    "initialValue": 0.023
+                  }
+                }
+              },
+              "dayCountFraction": "30/360",
+              "calculationPeriodDates": {
+                "terminationDate": {
+                  "adjustableDate": {
+                    "unadjustedDate": "2033-05-15"
+                  }
+                },
+                "calculationPeriodFrequency": {
+                  "period": "Y",
+                  "periodMultiplier": 1
+                }
+              },
+              "principalPayment": {
+                "principalAmount": {
+                  "amount": 5000000,
+                  "unit": {
+                    "currency": "EUR"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "dates": {
+      "tradeDate": "2026-09-14",
+      "settlementDate": "2026-09-16",
+      "maturityDate": "2033-05-15"
+    }
+  }
+}

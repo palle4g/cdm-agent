@@ -1,0 +1,177 @@
+{
+  "_metadata": {
+    "ground_truth_id": "gb_001",
+    "product_type": "GovernmentBond.FixedRate",
+    "source_format": "pipe-delimited",
+    "description": "US Treasury, USD, semi-annual, ACT/ACT, BUY"
+  },
+  "_source": {
+    "raw": "TRADE_NUM|ISIN|SIDE|QTY|CPTY_CODE|TRADE_DT|SETTLE_DT|MATURE_DT|COUPON|FREQ|DAY_COUNT\nGB001|US91282CJL54|BUY|10000000|JPMORGAN|2026-09-14|2026-09-16|2034-08-15|4.25|SEMI|ACT/ACT"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "TRADE_NUM",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "TRADE_DT",
+      "cdm_path": "tradeDate.date",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "ISIN",
+      "cdm_path": "product.productIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "ISIN (scheme)",
+      "cdm_path": "product.productIdentifier[0].source",
+      "confidence": "HIGH",
+      "reason": "Scheme inferred from field name and 12-char format"
+    },
+    {
+      "source_field": "CPTY_CODE",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "SETTLE_DT",
+      "cdm_path": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "MATURE_DT",
+      "cdm_path": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "QTY",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "COUPON",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+      "confidence": "HIGH",
+      "transformation": "4.25/100=0.0425"
+    },
+    {
+      "source_field": "FREQ",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "SEMI->M,6"
+    },
+    {
+      "source_field": "DAY_COUNT",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+      "confidence": "HIGH",
+      "transformation": "ACT/ACT->ACT/ACT.ICMA"
+    },
+    {
+      "source_field": "SIDE",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+      "confidence": "HIGH",
+      "transformation": "BUY->payer=Party2,receiver=Party1"
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "GB001"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": "2026-09-14"
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "JPMORGAN",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "JPMORGAN",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "Rates.GovernmentBond",
+      "productIdentifier": [
+        {
+          "identifier": "US91282CJL54",
+          "source": "ISIN"
+        }
+      ],
+      "economicTerms": {
+        "effectiveDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2026-09-16"
+          }
+        },
+        "terminationDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2034-08-15"
+          }
+        },
+        "payout": [
+          {
+            "interestRatePayout": {
+              "payerReceiver": {
+                "payer": "Party2",
+                "receiver": "Party1"
+              },
+              "rateSpecification": {
+                "fixedRate": {
+                  "rateSchedule": {
+                    "initialValue": 0.0425
+                  }
+                }
+              },
+              "dayCountFraction": "ACT/ACT.ICMA",
+              "calculationPeriodDates": {
+                "terminationDate": {
+                  "adjustableDate": {
+                    "unadjustedDate": "2034-08-15"
+                  }
+                },
+                "calculationPeriodFrequency": {
+                  "period": "M",
+                  "periodMultiplier": 6
+                }
+              },
+              "principalPayment": {
+                "principalAmount": {
+                  "amount": 10000000,
+                  "unit": {
+                    "currency": "USD"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "dates": {
+      "tradeDate": "2026-09-14",
+      "settlementDate": "2026-09-16",
+      "maturityDate": "2034-08-15"
+    }
+  }
+}

@@ -1,0 +1,182 @@
+{
+  "_metadata": {
+    "ground_truth_id": "gb_006",
+    "product_type": "GovernmentBond.FixedRate",
+    "source_format": "JSON",
+    "description": "US Treasury, USD, quarterly, ACT/360, SELL"
+  },
+  "_source": {
+    "raw": "{\"deal_id\":\"GB006\",\"security\":\"US912810TM09\",\"transaction_type\":\"SELL\",\"face_value\":15000000,\"currency\":\"USD\",\"coupon_rate\":4.00,\"payment_frequency\":\"QUARTERLY\",\"day_count_basis\":\"ACT/360\",\"trade_date\":\"2026-09-15\",\"settlement_date\":\"2026-09-17\",\"maturity_date\":\"2040-11-15\",\"counterparty\":\"WELLS FARGO\",\"counterparty_lei\":\"KB1H1DSPRFMYMCUFXT09\"}"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "deal_id",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "trade_date",
+      "cdm_path": "tradeDate.date",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "security",
+      "cdm_path": "product.productIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "security (scheme)",
+      "cdm_path": "product.productIdentifier[0].source",
+      "confidence": "HIGH",
+      "reason": "Scheme inferred from US-prefix 12-char format"
+    },
+    {
+      "source_field": "counterparty_lei",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "settlement_date",
+      "cdm_path": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "maturity_date",
+      "cdm_path": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "face_value",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "currency",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "coupon_rate",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+      "confidence": "HIGH",
+      "transformation": "4.00/100=0.04"
+    },
+    {
+      "source_field": "payment_frequency",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "QUARTERLY->M,3"
+    },
+    {
+      "source_field": "day_count_basis",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+      "confidence": "HIGH",
+      "transformation": "ACT/360->ACT/360"
+    },
+    {
+      "source_field": "transaction_type",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+      "confidence": "HIGH",
+      "transformation": "SELL->payer=Party1,receiver=Party2"
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "GB006"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": "2026-09-15"
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "KB1H1DSPRFMYMCUFXT09",
+            "identifierType": "LEI"
+          }
+        ],
+        "name": "WELLS FARGO",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "Rates.GovernmentBond",
+      "productIdentifier": [
+        {
+          "identifier": "US912810TM09",
+          "source": "ISIN"
+        }
+      ],
+      "economicTerms": {
+        "effectiveDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2026-09-17"
+          }
+        },
+        "terminationDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2040-11-15"
+          }
+        },
+        "payout": [
+          {
+            "interestRatePayout": {
+              "payerReceiver": {
+                "payer": "Party1",
+                "receiver": "Party2"
+              },
+              "rateSpecification": {
+                "fixedRate": {
+                  "rateSchedule": {
+                    "initialValue": 0.04
+                  }
+                }
+              },
+              "dayCountFraction": "ACT/360",
+              "calculationPeriodDates": {
+                "terminationDate": {
+                  "adjustableDate": {
+                    "unadjustedDate": "2040-11-15"
+                  }
+                },
+                "calculationPeriodFrequency": {
+                  "period": "M",
+                  "periodMultiplier": 3
+                }
+              },
+              "principalPayment": {
+                "principalAmount": {
+                  "amount": 15000000,
+                  "unit": {
+                    "currency": "USD"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "dates": {
+      "tradeDate": "2026-09-15",
+      "settlementDate": "2026-09-17",
+      "maturityDate": "2040-11-15"
+    }
+  }
+}

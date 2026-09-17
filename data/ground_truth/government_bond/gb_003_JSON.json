@@ -1,0 +1,182 @@
+{
+  "_metadata": {
+    "ground_truth_id": "gb_003",
+    "product_type": "GovernmentBond.FixedRate",
+    "source_format": "JSON",
+    "description": "UK Gilt, GBP, semi-annual, ACT/365, SELL"
+  },
+  "_source": {
+    "raw": "{\"deal_id\":\"GB003\",\"security\":\"GB00BLPK7110\",\"transaction_type\":\"SELL\",\"face_value\":8000000,\"currency\":\"GBP\",\"coupon_rate\":3.75,\"payment_frequency\":\"SEMI-ANNUAL\",\"day_count_basis\":\"ACT/365\",\"trade_date\":\"2026-09-14\",\"settlement_date\":\"2026-09-16\",\"maturity_date\":\"2035-01-31\",\"counterparty\":\"BARCLAYS\",\"counterparty_lei\":\"K7GEUW7YXOX6DZBLZC10\"}"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "deal_id",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "trade_date",
+      "cdm_path": "tradeDate.date",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "security",
+      "cdm_path": "product.productIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "security (scheme)",
+      "cdm_path": "product.productIdentifier[0].source",
+      "confidence": "HIGH",
+      "reason": "Scheme inferred from GB-prefix 12-char format"
+    },
+    {
+      "source_field": "counterparty_lei",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "settlement_date",
+      "cdm_path": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "maturity_date",
+      "cdm_path": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "face_value",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "currency",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "coupon_rate",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+      "confidence": "HIGH",
+      "transformation": "3.75/100=0.0375"
+    },
+    {
+      "source_field": "payment_frequency",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "SEMI-ANNUAL->M,6"
+    },
+    {
+      "source_field": "day_count_basis",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+      "confidence": "HIGH",
+      "transformation": "ACT/365->ACT/365.FIXED"
+    },
+    {
+      "source_field": "transaction_type",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+      "confidence": "HIGH",
+      "transformation": "SELL->payer=Party1,receiver=Party2"
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "GB003"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": "2026-09-14"
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "K7GEUW7YXOX6DZBLZC10",
+            "identifierType": "LEI"
+          }
+        ],
+        "name": "BARCLAYS",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "Rates.GovernmentBond",
+      "productIdentifier": [
+        {
+          "identifier": "GB00BLPK7110",
+          "source": "ISIN"
+        }
+      ],
+      "economicTerms": {
+        "effectiveDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2026-09-16"
+          }
+        },
+        "terminationDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2035-01-31"
+          }
+        },
+        "payout": [
+          {
+            "interestRatePayout": {
+              "payerReceiver": {
+                "payer": "Party1",
+                "receiver": "Party2"
+              },
+              "rateSpecification": {
+                "fixedRate": {
+                  "rateSchedule": {
+                    "initialValue": 0.0375
+                  }
+                }
+              },
+              "dayCountFraction": "ACT/365.FIXED",
+              "calculationPeriodDates": {
+                "terminationDate": {
+                  "adjustableDate": {
+                    "unadjustedDate": "2035-01-31"
+                  }
+                },
+                "calculationPeriodFrequency": {
+                  "period": "M",
+                  "periodMultiplier": 6
+                }
+              },
+              "principalPayment": {
+                "principalAmount": {
+                  "amount": 8000000,
+                  "unit": {
+                    "currency": "GBP"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "dates": {
+      "tradeDate": "2026-09-14",
+      "settlementDate": "2026-09-16",
+      "maturityDate": "2035-01-31"
+    }
+  }
+}

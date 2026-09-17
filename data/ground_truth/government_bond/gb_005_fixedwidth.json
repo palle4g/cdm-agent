@@ -1,0 +1,179 @@
+{
+  "_metadata": {
+    "ground_truth_id": "gb_005",
+    "product_type": "GovernmentBond.FixedRate",
+    "source_format": "fixed-width",
+    "description": "US Treasury, fixed-width, currency and day count inferred"
+  },
+  "_source": {
+    "raw": "TRADE_ID  ISIN          SIDE QTY        COUPON FREQ MAT_DATE   CPTY\nGB005     US91282CKQ98  B    20000000   3.8750 S    20300215   CITI"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "TRADE_ID",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "ISIN",
+      "cdm_path": "product.productIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "ISIN (scheme)",
+      "cdm_path": "product.productIdentifier[0].source",
+      "confidence": "HIGH",
+      "reason": "Scheme inferred from US-prefix 12-char format"
+    },
+    {
+      "source_field": "CPTY",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "MEDIUM",
+      "reason": "Short code only, no LEI available"
+    },
+    {
+      "source_field": "MAT_DATE",
+      "cdm_path": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH",
+      "transformation": "20300215->2030-02-15"
+    },
+    {
+      "source_field": "QTY",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "currency (inferred)",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+      "confidence": "MEDIUM",
+      "transformation": "ISIN US->USD",
+      "missingSourceField": true,
+      "reason": "No currency field in source. Inferred from ISIN prefix US=USD. Review recommended."
+    },
+    {
+      "source_field": "COUPON",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+      "confidence": "HIGH",
+      "transformation": "3.875/100=0.03875"
+    },
+    {
+      "source_field": "FREQ",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "S->M,6"
+    },
+    {
+      "source_field": "day_count (inferred)",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+      "confidence": "MEDIUM",
+      "transformation": "defaulted",
+      "missingSourceField": true,
+      "reason": "No day count in source. Defaulted to ACT/ACT.ICMA standard for government bonds. Review recommended."
+    },
+    {
+      "source_field": "SIDE",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+      "confidence": "HIGH",
+      "transformation": "B->payer=Party2,receiver=Party1"
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "GB005"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": null
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "CITI",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "CITI",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "Rates.GovernmentBond",
+      "productIdentifier": [
+        {
+          "identifier": "US91282CKQ98",
+          "source": "ISIN"
+        }
+      ],
+      "economicTerms": {
+        "effectiveDate": {
+          "adjustableDate": {
+            "unadjustedDate": null
+          }
+        },
+        "terminationDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2030-02-15"
+          }
+        },
+        "payout": [
+          {
+            "interestRatePayout": {
+              "payerReceiver": {
+                "payer": "Party2",
+                "receiver": "Party1"
+              },
+              "rateSpecification": {
+                "fixedRate": {
+                  "rateSchedule": {
+                    "initialValue": 0.03875
+                  }
+                }
+              },
+              "dayCountFraction": "ACT/ACT.ICMA",
+              "calculationPeriodDates": {
+                "terminationDate": {
+                  "adjustableDate": {
+                    "unadjustedDate": "2030-02-15"
+                  }
+                },
+                "calculationPeriodFrequency": {
+                  "period": "M",
+                  "periodMultiplier": 6
+                }
+              },
+              "principalPayment": {
+                "principalAmount": {
+                  "amount": 20000000,
+                  "unit": {
+                    "currency": "USD"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "dates": {
+      "tradeDate": null,
+      "settlementDate": null,
+      "maturityDate": "2030-02-15"
+    }
+  }
+}
