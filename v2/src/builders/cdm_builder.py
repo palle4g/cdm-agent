@@ -5,7 +5,7 @@ Builds real ISDA CDM JSON for Interest Rate Swaps as PLAIN PYTHON DICTS,
 in exactly the shape of the FINXIS reference files
 (v2/data/reference/interest_rate_swap/). No finos imports — the reference
 files are the spec; correctness is checked by diffing against them
-(see v2/tests/compare_fixedfloat.py).
+(see v2/tests/compare_reference.py).
 
 Why not finos.cdm Pydantic objects: finos-cdm 7.2-7.4 + rune-runtime 2.2.1
 cannot currently roundtrip this format (reference resolution, choice-type
@@ -37,15 +37,20 @@ def _scheme_data(scheme, value):
     return out
 
 
-def _bdc(convention):
-    return {"businessDayConvention": convention}
+def _bdc(convention, bc_ref=None):
+    out = {"businessDayConvention": convention}
+    if bc_ref:
+        out["businessCenters"] = {
+            "businessCentersReference": {"@ref:external": bc_ref}
+        }
+    return out
 
 
-def _adjustable_date(iso_date, bdc):
+def _adjustable_date(iso_date, bdc, bc_ref=None):
     return {
         "adjustableDate": {
             "unadjustedDate": iso_date,
-            "dateAdjustments": _bdc(bdc),
+            "dateAdjustments": _bdc(bdc, bc_ref),
         }
     }
 
@@ -88,8 +93,9 @@ def _observable(obs_key, index_key, leg: LegInput):
         ],
         "assetType": "Other",
         "assetClass": "InterestRate",
-        "floatingRateIndex": _data(leg.floating_index),
     }
+    if leg.floating_index_is_named:
+        fri["floatingRateIndex"] = _data(leg.floating_index)
     if leg.index_tenor_multiplier is not None and leg.index_tenor_period:
         fri["indexTenor"] = {
             "periodMultiplier": leg.index_tenor_multiplier,
@@ -110,13 +116,18 @@ def _observable(obs_key, index_key, leg: LegInput):
 def _calculation_period_dates(leg: LegInput, key):
     cpd = {
         "@key:external": key,
-        "effectiveDate": _adjustable_date(leg.effective_date, leg.effective_date_bdc),
-        "terminationDate": _adjustable_date(leg.termination_date, leg.termination_date_bdc),
-        "calculationPeriodDatesAdjustments": _bdc(leg.calc_period_bdc),
+        "effectiveDate": _adjustable_date(
+            leg.effective_date, leg.effective_date_bdc, leg.effective_date_bc_ref
+        ),
+        "terminationDate": _adjustable_date(
+            leg.termination_date, leg.termination_date_bdc, leg.termination_date_bc_ref
+        ),
+        "calculationPeriodDatesAdjustments": _bdc(leg.calc_period_bdc, leg.calc_period_bc_ref),
     }
     if leg.first_period_start_date:
         cpd["firstPeriodStartDate"] = _adjustable_date(
-            leg.first_period_start_date, leg.effective_date_bdc
+            leg.first_period_start_date,
+            leg.first_period_start_bdc or leg.effective_date_bdc,
         )
     cpd["calculationPeriodFrequency"] = {
         "periodMultiplier": leg.calc_period_multiplier,
@@ -126,13 +137,12 @@ def _calculation_period_dates(leg: LegInput, key):
     return cpd
 
 
-def _payment_dates(leg: LegInput, key=None):
-    pd = {}
-    if key:
-        pd["@key:external"] = key
-    pd["paymentFrequency"] = {
-        "periodMultiplier": leg.payment_freq_multiplier,
-        "period": leg.payment_freq_period,
+def _payment_dates(leg: LegInput):
+    pd = {
+        "paymentFrequency": {
+            "periodMultiplier": leg.payment_freq_multiplier,
+            "period": leg.payment_freq_period,
+        }
     }
     if leg.first_payment_date:
         pd["firstPaymentDate"] = leg.first_payment_date
@@ -145,11 +155,18 @@ def _payment_dates(leg: LegInput, key=None):
         if leg.payment_offset_day_type:
             offset["dayType"] = leg.payment_offset_day_type
         pd["paymentDaysOffset"] = offset
-    pd["paymentDatesAdjustments"] = _bdc(leg.payment_bdc)
+    pd["paymentDatesAdjustments"] = _bdc(leg.payment_bdc, leg.payment_bc_ref)
     return pd
 
 
 def _reset_dates(leg: LegInput, calc_key, reset_key):
+    rd = {
+        "@key:external": reset_key,
+        "calculationPeriodDatesReference": {"@ref:external": calc_key},
+    }
+    if leg.reset_relative_to:
+        rd["resetRelativeTo"] = leg.reset_relative_to
+
     fixing = {
         "periodMultiplier": leg.fixing_offset_multiplier,
         "period": leg.fixing_offset_period,
@@ -158,26 +175,24 @@ def _reset_dates(leg: LegInput, calc_key, reset_key):
         fixing["dayType"] = leg.fixing_offset_day_type
     if leg.fixing_bdc:
         fixing["businessDayConvention"] = leg.fixing_bdc
+    if leg.fixing_bc_ref:
+        fixing["businessCentersReference"] = {"@ref:external": leg.fixing_bc_ref}
     fixing["dateRelativeTo"] = {"@ref:external": reset_key}
+    rd["fixingDates"] = fixing
 
-    return {
-        "@key:external": reset_key,
-        "calculationPeriodDatesReference": {"@ref:external": calc_key},
-        "resetRelativeTo": leg.reset_relative_to,
-        "fixingDates": fixing,
-        "resetFrequency": {
-            "periodMultiplier": leg.reset_freq_multiplier,
-            "period": leg.reset_freq_period,
-        },
-        "resetDatesAdjustments": _bdc(leg.reset_bdc),
+    rd["resetFrequency"] = {
+        "periodMultiplier": leg.reset_freq_multiplier,
+        "period": leg.reset_freq_period,
     }
+    rd["resetDatesAdjustments"] = _bdc(leg.reset_bdc, leg.reset_bc_ref)
+    return rd
 
 
 def _build_leg(leg: LegInput, leg_no: int, counters: dict):
     """
     Returns (payout_dict, trade_lot_price_quantity_entry).
     counters tracks price-N / InterestRateIndex-N / observable-N numbering
-    across legs (numbered by order of first use, matching reference files).
+    by order of first use, matching the reference files.
     """
     qty_key = f"quantity-{leg_no}"
 
@@ -226,11 +241,9 @@ def _build_leg(leg: LegInput, leg_no: int, counters: dict):
 
     calc_key = f"calculationPeriodDates-leg{leg_no}"
     payout["calculationPeriodDates"] = _calculation_period_dates(leg, calc_key)
+    payout["paymentDates"] = _payment_dates(leg)
 
-    pay_key = f"paymentDates-leg{leg_no}" if leg.reset_relative_to else None
-    payout["paymentDates"] = _payment_dates(leg, pay_key)
-
-    if leg.leg_type == "floating" and leg.reset_relative_to:
+    if leg.leg_type == "floating" and leg.reset_freq_multiplier is not None:
         reset_key = f"resetDates-leg{leg_no}"
         payout["resetDates"] = _reset_dates(leg, calc_key, reset_key)
 
@@ -240,12 +253,12 @@ def _build_leg(leg: LegInput, leg_no: int, counters: dict):
     return payout, pq_entry
 
 
-# ── parties / identifiers ─────────────────────────────────────────────────────
+# ── parties / identifiers / contract details ──────────────────────────────────
 
 def _party(p: PartyInput):
     ident = {"identifier": _scheme_data(p.lei_scheme, p.lei or p.key)}
-    if p.lei:
-        ident["identifierType"] = "LEI"
+    if p.id_type:
+        ident["identifierType"] = p.id_type
     party = {"@key:external": p.key, "partyId": [ident]}
     if p.name:
         party["name"] = _data(p.name)
@@ -267,6 +280,33 @@ def _trade_identifier(tid: TradeIdentifierInput):
     return ti
 
 
+def _contract_details(input_data: IRSTradeInput):
+    contractual = [{"@ref:external": p.key} for p in input_data.parties]
+    docs = []
+    if input_data.master_agreement_type:
+        docs.append({
+            "legalAgreementIdentification": {
+                "agreementName": {
+                    "agreementType": "MasterAgreement",
+                    "masterAgreementType": _scheme_data(
+                        input_data.master_agreement_scheme,
+                        input_data.master_agreement_type,
+                    ),
+                }
+            },
+            "contractualParty": contractual,
+        })
+    if input_data.has_confirmation:
+        name = {"agreementType": "Confirmation"}
+        if input_data.confirmation_definitions:
+            name["contractualDefinitionsType"] = [_data(input_data.confirmation_definitions)]
+        docs.append({
+            "legalAgreementIdentification": {"agreementName": name},
+            "contractualParty": contractual,
+        })
+    return {"documentation": docs} if docs else None
+
+
 # ── main entry point ──────────────────────────────────────────────────────────
 
 def build_irs_trade_state(input_data: IRSTradeInput) -> dict:
@@ -279,6 +319,8 @@ def build_irs_trade_state(input_data: IRSTradeInput) -> dict:
         pq_entries.append(pq)
 
     taxonomy = []
+    if input_data.primary_asset_class:
+        taxonomy.append({"primaryAssetClass": _data(input_data.primary_asset_class)})
     if input_data.other_taxonomy:
         taxonomy.append({
             "source": "Other",
@@ -298,6 +340,12 @@ def build_irs_trade_state(input_data: IRSTradeInput) -> dict:
         }
 
     product = {}
+    if input_data.product_id_value:
+        product["identifier"] = [{
+            "identifier": _scheme_data(input_data.product_id_scheme,
+                                       input_data.product_id_value),
+            "source": input_data.product_id_source,
+        }]
     if taxonomy:
         product["taxonomy"] = taxonomy
     product["economicTerms"] = economic_terms
@@ -318,6 +366,10 @@ def build_irs_trade_state(input_data: IRSTradeInput) -> dict:
     trade["tradeIdentifier"] = [_trade_identifier(t) for t in input_data.trade_identifiers]
     trade["tradeDate"] = _data(input_data.trade_date)
     trade["party"] = [_party(p) for p in input_data.parties]
+
+    contract_details = _contract_details(input_data)
+    if contract_details:
+        trade["contractDetails"] = contract_details
 
     result = {
         "@model": "cdm",

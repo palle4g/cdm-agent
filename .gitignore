@@ -3,3 +3,4 @@ venv/
 __pycache__/
 *.pyc
 FromFinxisViewer/
+v2/tests/out_*.json
