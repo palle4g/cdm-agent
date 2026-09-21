@@ -1,0 +1,48 @@
+{
+  "mode": "AGENT (claude-sonnet-4-6)",
+  "summary": {
+    "pass": 4,
+    "fail": 1,
+    "error": 0,
+    "total": 5
+  },
+  "results": [
+    {
+      "case": "fixedfloat",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "case": "ois",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "case": "zerocoupon",
+      "status": "FAIL",
+      "diff_count": 1,
+      "diffs": [
+        {
+          "kind": "VALUE",
+          "path": "trade.product.economicTerms.payout[0].calculationPeriodDates.firstPeriodStartDate.adjustableDate.unadjustedDate",
+          "ours": "2018-02-18",
+          "ref": "2018-02-20"
+        }
+      ]
+    },
+    {
+      "case": "basis",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "case": "basis-ois",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    }
+  ]
+}

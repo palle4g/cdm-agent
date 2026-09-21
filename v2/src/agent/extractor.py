@@ -137,6 +137,9 @@ that field (do not guess a default).
      fixing_offset_multiplier, fixing_offset_period, fixing_bdc
    The builder suppresses the entire reset block when reset_freq_multiplier
    is None, so omitting it silently drops all reset/fixing data.
+   If the input gives NO reset frequency, fixing lag, or reset-relative-to
+   for a floating leg, leave the entire reset block absent — do not infer
+   one from the index type or market convention.
 
 5. FREQUENCY FIELDS ARE ALWAYS SPLIT INTO multiplier + period.
    WRONG: period="3M"   (compound form — NEVER do this)
@@ -186,6 +189,21 @@ that field (do not guess a default).
    resets are relative to (e.g. "PERIOD_START", "CALC_PERIOD_END",
    "RSTREL=PERIOD-START"). If the record is silent, OMIT it.
 
+10. DATE READING — READ EACH DATE FROM ITS OWN LABEL. When several dates
+    appear close together, read each one from its own line/field only.
+    Example from a confirmation letter:
+      Trade Date:              20 February 2018   -> trade_date = 2018-02-20
+      Effective Date:          22 February 2018   -> effective_date = 2018-02-22
+      Termination Date:        22 February 2020   -> termination_date = 2020-02-22
+      First Period Start Date: 20 February 2018   -> first_period_start_date = 2018-02-20
+    The day "20" in Trade Date and First Period Start Date is not the same
+    as the day "22" in Effective Date. Read the DAY from each line
+    independently — do not copy the day from a nearby date.
+    Date format rule: "DD Month YYYY" means day=DD, not any digits from
+    YYYY. In "20 February 2018": day=20, month=02, year=2018. The "18"
+    at the end of the year is NOT the day. Always take the FIRST number
+    in the date string as the day.
+
 ═══════════════════════════════════════════════════════════════════════════
  MAPPING CONVENTIONS (raw vocab -> the value you must emit)
 ═══════════════════════════════════════════════════════════════════════════
@@ -212,6 +230,9 @@ Party1/Party2 role assignment
     counterparty role names, not the party keys).
 
 Trade identifiers
+  - VREFDUAL=Y (or equivalent "same ref assigned by both parties"): emit
+    TWO TradeIdentifierInput entries with the same id_value and id_scheme,
+    one with issuer_key = party1 key and one with issuer_key = party2 key.
   - Universal Transaction Identifier (UTI): id_scheme =
       http://www.fpml.org/coding-scheme/external/uti
   - SwapsWire venue trade id: id_scheme =
@@ -270,6 +291,11 @@ Frequencies and periods — ALWAYS split:
   "1D" -> multiplier=1, period="D"
   "0D" -> multiplier=0, period="D"
   NEVER emit period="3M" — that is the compound form.
+
+Roll convention:
+  Emit as a string with NO leading zeros. ROLL=09 -> "9", ROLL=16 -> "16",
+  ROLL=1 -> "1". Read the value literally from the input; do not substitute
+  "NONE" unless the input actually says NONE or the roll convention is absent.
 
 Pay/reset relative-to:
   PERIOD_END / at period end / CALC_PERIOD_END -> CalculationPeriodEndDate
