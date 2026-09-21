@@ -1,0 +1,195 @@
+{
+  "_metadata": {
+    "ground_truth_id": "irs_002",
+    "product_type": "InterestRateSwap",
+    "source_format": "JSON",
+    "description": "EUR 7y swap, fixed vs EURIBOR+spread, we receive fixed, JSON"
+  },
+  "_source": {
+    "raw": "{\"deal_id\":\"IRS-2026-88120\",\"trade_date\":\"2026-09-15\",\"effective_date\":\"2026-09-17\",\"termination_date\":\"2033-09-17\",\"notional\":40000000,\"currency\":\"EUR\",\"fixed_rate\":2.95,\"fixed_frequency\":\"ANNUAL\",\"fixed_day_count\":\"30/360\",\"float_index\":\"EURIBOR\",\"float_spread\":0.15,\"float_frequency\":\"QUARTERLY\",\"float_day_count\":\"ACT/360\",\"pay_receive\":\"RECEIVE_FIXED\",\"counterparty_lei\":\"7LTWFZYICNSX8D621K86\",\"counterparty_name\":\"DEUTSCHE BANK\"}"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "deal_id",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "trade_date",
+      "cdm_path": "tradeDate.date",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "counterparty_lei",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "effective_date",
+      "cdm_path": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "termination_date",
+      "cdm_path": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "notional",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "currency",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "fixed_rate",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+      "confidence": "HIGH",
+      "transformation": "2.95/100=0.0295"
+    },
+    {
+      "source_field": "fixed_frequency",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "ANNUAL->Y,1"
+    },
+    {
+      "source_field": "fixed_day_count",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+      "confidence": "HIGH",
+      "transformation": "30/360->30/360"
+    },
+    {
+      "source_field": "pay_receive (payer/receiver)",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+      "confidence": "HIGH",
+      "transformation": "RECEIVE_FIXED -> payer=Party2,receiver=Party1"
+    },
+    {
+      "source_field": "float_index",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.rateSpecification.floatingRate.index",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "float_spread",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.rateSpecification.floatingRate.spread",
+      "confidence": "HIGH",
+      "transformation": "0.15/100=0.0015"
+    },
+    {
+      "source_field": "float_frequency",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "QUARTERLY->M,3"
+    },
+    {
+      "source_field": "float_day_count",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.dayCountFraction",
+      "confidence": "HIGH",
+      "transformation": "ACT/360->ACT/360"
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "IRS-2026-88120"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": "2026-09-15"
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "7LTWFZYICNSX8D621K86",
+            "identifierType": "LEI"
+          }
+        ],
+        "name": "DEUTSCHE BANK",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "InterestRate.Swap",
+      "economicTerms": {
+        "effectiveDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2026-09-17"
+          }
+        },
+        "terminationDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2033-09-17"
+          }
+        },
+        "payout": [
+          {
+            "interestRatePayout": {
+              "payerReceiver": {
+                "payer": "Party2",
+                "receiver": "Party1"
+              },
+              "rateSpecification": {
+                "fixedRate": {
+                  "rateSchedule": {
+                    "initialValue": 0.0295
+                  }
+                }
+              },
+              "dayCountFraction": "30/360",
+              "calculationPeriodDates": {
+                "calculationPeriodFrequency": {
+                  "period": "Y",
+                  "periodMultiplier": 1
+                }
+              },
+              "principalPayment": {
+                "principalAmount": {
+                  "amount": 40000000,
+                  "unit": {
+                    "currency": "EUR"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "interestRatePayout": {
+              "rateSpecification": {
+                "floatingRate": {
+                  "index": "EURIBOR",
+                  "spread": 0.0015
+                }
+              },
+              "dayCountFraction": "ACT/360",
+              "calculationPeriodDates": {
+                "calculationPeriodFrequency": {
+                  "period": "M",
+                  "periodMultiplier": 3
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,198 @@
+{
+  "_metadata": {
+    "ground_truth_id": "irs_003",
+    "product_type": "InterestRateSwap",
+    "source_format": "pipedelimited",
+    "description": "GBP 3y swap, fixed vs SONIA, missing spread field, pipe-delimited"
+  },
+  "_source": {
+    "raw": "TRD_ID|TRADE_DT|EFF_DT|TERM_DT|NOTIONAL|CCY|FIX_RATE|FIX_FREQ|FIX_DCF|FLT_INDEX|FLT_FREQ|FLT_DCF|CPTY\nIRS003|2026-09-16|2026-09-18|2029-09-18|15000000|GBP|4.10|SEMI|ACT/365|SONIA|QUARTERLY|ACT/365|HSBC"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "TRD_ID",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "TRADE_DT",
+      "cdm_path": "tradeDate.date",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "CPTY",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "MEDIUM",
+      "reason": "Short code only, no LEI available"
+    },
+    {
+      "source_field": "EFF_DT",
+      "cdm_path": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "TERM_DT",
+      "cdm_path": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "NOTIONAL",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "CCY",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "FIX_RATE",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+      "confidence": "HIGH",
+      "transformation": "4.10/100=0.041"
+    },
+    {
+      "source_field": "FIX_FREQ",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "SEMI->M,6"
+    },
+    {
+      "source_field": "FIX_DCF",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+      "confidence": "HIGH",
+      "transformation": "ACT/365->ACT/365.FIXED"
+    },
+    {
+      "source_field": "CPTY (payer/receiver)",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+      "confidence": "MEDIUM",
+      "reason": "No explicit pay/receive flag in source - defaulted to we pay fixed per standard convention"
+    },
+    {
+      "source_field": "FLT_INDEX",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.rateSpecification.floatingRate.index",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "spread (inferred)",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.rateSpecification.floatingRate.spread",
+      "confidence": "MEDIUM",
+      "transformation": "defaulted to 0.0",
+      "missingSourceField": true,
+      "reason": "No spread field present in source data. Defaulted to 0.0 (flat to index). Human review recommended."
+    },
+    {
+      "source_field": "FLT_FREQ",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "QUARTERLY->M,3"
+    },
+    {
+      "source_field": "FLT_DCF",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.dayCountFraction",
+      "confidence": "HIGH",
+      "transformation": "ACT/365->ACT/365.FIXED"
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "IRS003"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": "2026-09-16"
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "HSBC",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "HSBC",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "InterestRate.Swap",
+      "economicTerms": {
+        "effectiveDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2026-09-18"
+          }
+        },
+        "terminationDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2029-09-18"
+          }
+        },
+        "payout": [
+          {
+            "interestRatePayout": {
+              "payerReceiver": {
+                "payer": "Party1",
+                "receiver": "Party2"
+              },
+              "rateSpecification": {
+                "fixedRate": {
+                  "rateSchedule": {
+                    "initialValue": 0.041
+                  }
+                }
+              },
+              "dayCountFraction": "ACT/365.FIXED",
+              "calculationPeriodDates": {
+                "calculationPeriodFrequency": {
+                  "period": "M",
+                  "periodMultiplier": 6
+                }
+              },
+              "principalPayment": {
+                "principalAmount": {
+                  "amount": 15000000,
+                  "unit": {
+                    "currency": "GBP"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "interestRatePayout": {
+              "rateSpecification": {
+                "floatingRate": {
+                  "index": "SONIA",
+                  "spread": 0.0
+                }
+              },
+              "dayCountFraction": "ACT/365.FIXED",
+              "calculationPeriodDates": {
+                "calculationPeriodFrequency": {
+                  "period": "M",
+                  "periodMultiplier": 3
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

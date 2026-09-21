@@ -11,11 +11,12 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from schemas import government_bond
 from schemas import fx_forward
+from schemas import interest_rate_swap
 
-# Registry: product_type string -> schema module
 _REGISTRY = {
     "GovernmentBond": government_bond,
     "FXForward": fx_forward,
+    "InterestRateSwap": interest_rate_swap,
 }
 
 
@@ -41,11 +42,7 @@ def list_products():
 
 
 def detect_product_type(normalized_fields):
-    """
-    Score each registered product by how many detection hints match,
-    then return the best match. This handles the case where a source
-    might weakly match more than one product's hints.
-    """
+    """Score each registered product by hint matches, return the best match."""
     field_names_lower = [k.lower() for k in normalized_fields.keys()]
 
     best_product = "UNKNOWN"
@@ -75,12 +72,9 @@ def detect_product_type(normalized_fields):
 
 if __name__ == "__main__":
     print("Registered products: " + ", ".join(list_products()))
-
     bond_fields = {"ISIN": "US91282CJL54", "COUPON": "4.25", "MATURE_DT": "2034-08-15"}
     print("Bond fields detected as: " + detect_product_type(bond_fields))
-
     fx_fields = {"BUY_CCY": "EUR", "SELL_CCY": "USD", "BUY_NOTIONAL": "1000000"}
     print("FX fields detected as: " + detect_product_type(fx_fields))
-
-    unknown_fields = {"FOO": "bar"}
-    print("Unknown fields detected as: " + detect_product_type(unknown_fields))
+    irs_fields = {"FIX_RATE": "3.85", "FLT_INDEX": "SOFR", "NOTIONAL": "25000000"}
+    print("IRS fields detected as: " + detect_product_type(irs_fields))

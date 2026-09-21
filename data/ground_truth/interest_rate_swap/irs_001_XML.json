@@ -1,0 +1,195 @@
+{
+  "_metadata": {
+    "ground_truth_id": "irs_001",
+    "product_type": "InterestRateSwap",
+    "source_format": "XML",
+    "description": "USD 5y swap, fixed vs SOFR, we pay fixed, XML"
+  },
+  "_source": {
+    "raw": "<swap><tradeId>IRS-2026-55210</tradeId><tradeDate>2026-09-14</tradeDate><effectiveDate>2026-10-01</effectiveDate><terminationDate>2031-10-01</terminationDate><notional currency=\"USD\">25000000</notional><fixedRate>3.85</fixedRate><fixedFreq>SEMI</fixedFreq><fixedDayCount>30/360</fixedDayCount><floatIndex>SOFR</floatIndex><spread>0.00</spread><floatFreq>QUARTERLY</floatFreq><floatDayCount>ACT/360</floatDayCount><counterparty lei=\"549300EXAMPLE01\">BARCLAYS CAPITAL</counterparty></swap>"
+  },
+  "_field_mapping": [
+    {
+      "source_field": "tradeId",
+      "cdm_path": "tradeIdentifier[0].assignedIdentifier[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "tradeDate",
+      "cdm_path": "tradeDate.date",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "counterparty_lei",
+      "cdm_path": "party[1].partyId[0].identifier",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "effectiveDate",
+      "cdm_path": "product.economicTerms.effectiveDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "terminationDate",
+      "cdm_path": "product.economicTerms.terminationDate.adjustableDate.unadjustedDate",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "notional",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.amount",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "notional_currency",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.principalPayment.principalAmount.unit.currency",
+      "confidence": "HIGH",
+      "reason": "Currency given as XML attribute on notional element"
+    },
+    {
+      "source_field": "fixedRate",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.rateSpecification.fixedRate.rateSchedule.initialValue",
+      "confidence": "HIGH",
+      "transformation": "3.85/100=0.0385"
+    },
+    {
+      "source_field": "fixedFreq",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "SEMI->M,6"
+    },
+    {
+      "source_field": "fixedDayCount",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.dayCountFraction",
+      "confidence": "HIGH",
+      "transformation": "30/360->30/360"
+    },
+    {
+      "source_field": "counterparty_lei (payer/receiver)",
+      "cdm_path": "product.economicTerms.payout[0].interestRatePayout.payerReceiver",
+      "confidence": "MEDIUM",
+      "reason": "No explicit pay/receive flag in source - defaulted to we pay fixed per standard bank hedging convention"
+    },
+    {
+      "source_field": "floatIndex",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.rateSpecification.floatingRate.index",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "spread",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.rateSpecification.floatingRate.spread",
+      "confidence": "HIGH"
+    },
+    {
+      "source_field": "floatFreq",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.calculationPeriodDates.calculationPeriodFrequency",
+      "confidence": "HIGH",
+      "transformation": "QUARTERLY->M,3"
+    },
+    {
+      "source_field": "floatDayCount",
+      "cdm_path": "product.economicTerms.payout[1].interestRatePayout.dayCountFraction",
+      "confidence": "HIGH",
+      "transformation": "ACT/360->ACT/360"
+    }
+  ],
+  "cdmTrade": {
+    "tradeIdentifier": [
+      {
+        "assignedIdentifier": [
+          {
+            "identifier": "IRS-2026-55210"
+          }
+        ]
+      }
+    ],
+    "tradeDate": {
+      "date": "2026-09-14"
+    },
+    "party": [
+      {
+        "partyId": [
+          {
+            "identifier": "OUR-BANK",
+            "identifierType": "INTERNAL"
+          }
+        ],
+        "name": "OUR BANK PLC",
+        "role": "OUR_BANK"
+      },
+      {
+        "partyId": [
+          {
+            "identifier": "549300EXAMPLE01",
+            "identifierType": "LEI"
+          }
+        ],
+        "name": "BARCLAYS CAPITAL",
+        "role": "COUNTERPARTY"
+      }
+    ],
+    "product": {
+      "productType": "InterestRate.Swap",
+      "economicTerms": {
+        "effectiveDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2026-10-01"
+          }
+        },
+        "terminationDate": {
+          "adjustableDate": {
+            "unadjustedDate": "2031-10-01"
+          }
+        },
+        "payout": [
+          {
+            "interestRatePayout": {
+              "payerReceiver": {
+                "payer": "Party1",
+                "receiver": "Party2"
+              },
+              "rateSpecification": {
+                "fixedRate": {
+                  "rateSchedule": {
+                    "initialValue": 0.0385
+                  }
+                }
+              },
+              "dayCountFraction": "30/360",
+              "calculationPeriodDates": {
+                "calculationPeriodFrequency": {
+                  "period": "M",
+                  "periodMultiplier": 6
+                }
+              },
+              "principalPayment": {
+                "principalAmount": {
+                  "amount": 25000000,
+                  "unit": {
+                    "currency": "USD"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "interestRatePayout": {
+              "rateSpecification": {
+                "floatingRate": {
+                  "index": "SOFR",
+                  "spread": 0.0
+                }
+              },
+              "dayCountFraction": "ACT/360",
+              "calculationPeriodDates": {
+                "calculationPeriodFrequency": {
+                  "period": "M",
+                  "periodMultiplier": 3
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  }
+}

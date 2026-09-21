@@ -2,8 +2,8 @@
 mapping_agent.py
 T-005: The CDM mapping agent (product-agnostic).
 Loads the schema for the detected product type from the registry.
-Includes a bulletproof response parser that finds cdmTrade and fieldMapping
-regardless of what wrapper key the model uses.
+Supports optional previous_errors for validation-retry reuse by agent_loop.py -
+single source of truth for the actual API call and parsing logic.
 """
 
 import json
@@ -22,8 +22,6 @@ from config import (
     DEFAULT_PRODUCT_TYPE, GROUND_TRUTH_DIR
 )
 
-# Strict output contract appended to every schema so the model
-# always uses the same top-level keys.
 OUTPUT_CONTRACT = """
 
 STRICT OUTPUT CONTRACT - your response MUST be a single JSON object whose
@@ -33,14 +31,12 @@ TOP-LEVEL keys are EXACTLY these, spelled exactly this way:
   "mappingNotes"      (array)
   "missingFields"     (array)
 Do NOT wrap these in any other key such as "cdmMappingOutput", "result",
-"output", or "data". The object you return must have cdmTrade and fieldMapping
-as its own direct keys. Start your response with { and the first key must be
+"output", or "data". Start your response with { and the first key must be
 "cdmTrade".
 """
 
 
 def _find_key_recursive(obj, target_keys):
-    """Search a nested dict/list for the first value under any of target_keys."""
     if isinstance(obj, dict):
         for k, v in obj.items():
             if k in target_keys:
@@ -58,15 +54,10 @@ def _find_key_recursive(obj, target_keys):
 
 
 def _normalize_result(parsed):
-    """
-    Given whatever JSON the model returned, extract a consistent structure with
-    cdmTrade and fieldMapping at the top level, regardless of wrapper naming.
-    """
-    # If it already looks right, use it
+    """Extract cdmTrade + fieldMapping regardless of what wrapper key the model used."""
     if isinstance(parsed, dict) and ("cdmTrade" in parsed or "fieldMapping" in parsed or "fieldMappings" in parsed):
         result = dict(parsed)
     else:
-        # It's wrapped in something - unwrap by searching
         result = {}
         ct = _find_key_recursive(parsed, {"cdmTrade", "cdm_trade", "CDMTrade", "trade"})
         fm = _find_key_recursive(parsed, {"fieldMapping", "fieldMappings", "field_mapping", "field_mappings"})
@@ -81,23 +72,31 @@ def _normalize_result(parsed):
         if missing is not None:
             result["missingFields"] = missing
 
-    # Normalize plural fieldMappings -> fieldMapping
     if "fieldMappings" in result and "fieldMapping" not in result:
         result["fieldMapping"] = result.pop("fieldMappings")
 
-    # If cdmTrade still missing but the object itself has tradeIdentifier, wrap it
     if "cdmTrade" not in result and isinstance(parsed, dict) and "tradeIdentifier" in parsed:
         result["cdmTrade"] = parsed
 
-    # Ensure fieldMapping exists
     if "fieldMapping" not in result:
         result["fieldMapping"] = []
 
     return result
 
 
-def map_trade(normalized_fields, product_type=None, use_complex_model=False):
-    """Map a normalized trade dict to CDM."""
+def map_trade(normalized_fields, product_type=None, use_complex_model=False, previous_errors=None):
+    """
+    Map a normalized trade dict to CDM.
+
+    Args:
+        normalized_fields: output from format_detector.normalize()
+        product_type: force a product type, or None to auto-detect
+        use_complex_model: use the complex/escalation model instead of standard
+        previous_errors: list of validation error strings from a prior attempt -
+            when given, the agent is asked to correct these specific issues.
+            This is what makes agent_loop.py's retry loop work through this
+            same function instead of duplicating the API call logic.
+    """
     client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
     model = AGENT_MODEL_COMPLEX if use_complex_model else AGENT_MODEL
 
@@ -116,17 +115,22 @@ def map_trade(normalized_fields, product_type=None, use_complex_model=False):
     fields_text = json.dumps(normalized_fields, indent=2)
 
     has_currency = any(k.lower() in ["currency", "ccy", "bond_ccy", "settle_ccy"] for k in normalized_fields.keys())
-    has_day_count = any(k.lower() in ["day_count", "dcf", "day_cnt", "basis", "day_count_basis"] for k in normalized_fields.keys())
+    has_day_count = any(k.lower() in ["day_count", "dcf", "day_cnt", "basis", "day_count_basis", "fix_dcf", "float_dcf"] for k in normalized_fields.keys())
     reminders = []
     if not has_currency:
-        reminders.append("No currency field in source - apply rule 11: add currency (inferred) entry with reason")
+        reminders.append("No currency field in source - apply the currency inference rule with a reason")
     if not has_day_count:
-        reminders.append("No day count field in source - apply rule 12: add day_count (inferred) entry with reason")
+        reminders.append("No day count field in source - apply the day count inference rule with a reason")
     reminder_text = ("\n\nREMINDERS:\n" + "\n".join(["- " + r for r in reminders])) if reminders else ""
+
+    error_text = ""
+    if previous_errors:
+        error_text = "\n\nVALIDATION ERRORS FROM PREVIOUS ATTEMPT - fix these specifically:\n" + \
+                     "\n".join(["- " + e for e in previous_errors])
 
     user_message = (
         "Map this legacy trade data to CDM format.\n\n"
-        "SOURCE DATA:\n" + fields_text + reminder_text +
+        "SOURCE DATA:\n" + fields_text + reminder_text + error_text +
         "\n\nReturn a single JSON object with top-level keys cdmTrade, fieldMapping, "
         "mappingNotes, missingFields. Start with { and first key cdmTrade. No markdown."
     )
@@ -207,7 +211,7 @@ def score_against_ground_truth(agent_output, ground_truth_path):
 if __name__ == "__main__":
     from config import print_config
     print_config()
-    gt = json.load(open(os.path.join(GROUND_TRUTH_DIR, "government_bond", "gb_002_pipedelimited.json")))
+    gt = json.load(open(os.path.join(GROUND_TRUTH_DIR, "government_bond", "gb_001_pipedelimited.json")))
     normalized = normalize(gt["_source"]["raw"])
     result = map_trade(normalized, product_type="GovernmentBond")
     print("\nKeys: " + str(list(result.keys())))

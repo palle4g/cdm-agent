@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>CDM Mapping Agent - Critique UI</title>
+<style>
+  :root {
+    --navy: #1a1a2e; --blue: #2563eb; --slate: #475569;
+    --bg: #f8fafc; --card: #ffffff; --border: #e2e8f0;
+    --green: #16a34a; --amber: #ca8a04; --red: #dc2626; --purple: #7c3aed;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: var(--bg); margin: 0; padding: 24px; color: var(--navy);
+  }
+  h1 { font-size: 20px; margin-bottom: 4px; }
+  .subtitle { color: var(--slate); font-size: 13px; margin-bottom: 24px; }
+  .layout { display: grid; grid-template-columns: 320px 1fr; gap: 20px; align-items: start; }
+  .panel {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px;
+  }
+  .filters { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+  select, button {
+    padding: 6px 12px; border-radius: 6px; border: 1px solid var(--border);
+    font-size: 13px; background: white; cursor: pointer;
+  }
+  button.primary { background: var(--blue); color: white; border: none; }
+  button.link { background: none; border: none; color: var(--blue); text-decoration: underline; padding: 0; font-size: 12px; }
+  .conv-item {
+    padding: 10px 12px; border-radius: 8px; margin-bottom: 6px; cursor: pointer;
+    border: 1px solid var(--border); font-size: 13px;
+  }
+  .conv-item:hover { background: #f1f5f9; }
+  .conv-item.selected { background: #eff6ff; border-color: var(--blue); }
+  .conv-item .id { font-weight: 600; }
+  .conv-item .meta { color: var(--slate); font-size: 11px; margin-top: 2px; }
+  .badge {
+    display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 10px;
+    font-weight: 600; margin-left: 6px;
+  }
+  .badge.high { background: #f0fdf4; color: var(--green); }
+  .badge.medium { background: #fefce8; color: var(--amber); }
+  .badge.low { background: #fef2f2; color: var(--red); }
+  .badge.methodology { background: #f5f3ff; color: var(--purple); }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 12px; }
+  th { text-align: left; padding: 8px; background: #f8fafc; border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; color: var(--slate); }
+  td { padding: 8px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+  .cdm-path { font-family: 'Consolas', monospace; font-size: 11px; color: var(--blue); }
+  .reason-box {
+    font-size: 11px; color: var(--slate); background: #fffbeb; padding: 6px 8px;
+    border-radius: 6px; margin-top: 4px; border-left: 3px solid var(--amber);
+  }
+  .methodology-box {
+    font-size: 12px; color: var(--navy); background: #f5f3ff; padding: 10px 12px;
+    border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--purple);
+  }
+  .methodology-box .field-changed { font-weight: 600; font-family: 'Consolas', monospace; font-size: 11px; margin-bottom: 4px; }
+  .methodology-box .cat { font-size: 10px; color: var(--purple); text-transform: uppercase; font-weight: 700; margin-bottom: 6px; display: block; }
+  .methodology-box .date { color: var(--slate); font-size: 10px; float: right; }
+  .correct-btn {
+    font-size: 11px; padding: 2px 8px; background: white; border: 1px solid var(--border);
+    border-radius: 4px; cursor: pointer;
+  }
+  .correct-btn:hover { background: #fef2f2; border-color: var(--red); }
+  pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 11px; overflow: auto; max-height: 300px; }
+  .empty { color: var(--slate); text-align: center; padding: 40px; font-size: 13px; }
+  .section-title { font-size: 13px; font-weight: 600; margin: 16px 0 6px 0; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+  .api-status { font-size: 11px; padding: 4px 10px; border-radius: 12px; display: inline-block; margin-bottom: 12px; }
+  .api-status.ok { background: #f0fdf4; color: var(--green); }
+  .api-status.error { background: #fef2f2; color: var(--red); }
+  .collapsible-body { display: none; }
+  .collapsible-body.open { display: block; }
+  .info-note {
+    font-size: 11px; color: var(--slate); background: #f8fafc; padding: 8px 10px;
+    border-radius: 6px; margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<h1>CDM Mapping Agent — Critique UI</h1>
+<p class="subtitle">Review agent mappings, inspect confidence and reasoning, correct anything wrong.</p>
+<div id="apiStatus" class="api-status">Checking API...</div>
+
+<div class="layout">
+  <div class="panel">
+    <div class="filters">
+      <select id="productFilter"><option value="">All products</option></select>
+      <button onclick="loadConversions()">Refresh</button>
+    </div>
+    <div class="section-title">Conversions</div>
+    <div id="convList"></div>
+  </div>
+
+  <div class="panel" id="detailPanel">
+    <div class="empty">Select a conversion on the left to review it.</div>
+  </div>
+</div>
+
+<script>
+const API = "http://localhost:8000";
+let selectedId = null;
+
+async function checkApi() {
+  const el = document.getElementById("apiStatus");
+  try {
+    const r = await fetch(API + "/");
+    if (r.ok) { el.textContent = "API connected"; el.className = "api-status ok"; }
+    else throw new Error();
+  } catch {
+    el.textContent = "API not reachable — run: uvicorn src.api.app:app --reload --port 8000";
+    el.className = "api-status error";
+  }
+}
+
+async function loadProducts() {
+  try {
+    const r = await fetch(API + "/products");
+    const products = await r.json();
+    const sel = document.getElementById("productFilter");
+    products.forEach(p => {
+      const opt = document.createElement("option");
+      opt.value = p; opt.textContent = p;
+      sel.appendChild(opt);
+    });
+  } catch {}
+}
+
+async function loadConversions() {
+  const product = document.getElementById("productFilter").value;
+  let url = API + "/conversions?limit=50";
+  if (product) url += "&product_type=" + encodeURIComponent(product);
+
+  try {
+    const r = await fetch(url);
+    const items = await r.json();
+    const list = document.getElementById("convList");
+    list.innerHTML = "";
+    if (items.length === 0) {
+      list.innerHTML = '<div class="empty">No conversions yet. Run eval.py to populate the store.</div>';
+      return;
+    }
+    items.forEach(c => {
+      const div = document.createElement("div");
+      div.className = "conv-item" + (c.id === selectedId ? " selected" : "");
+      div.onclick = () => selectConversion(c.id);
+      div.innerHTML = `
+        <div class="id">#${c.id} — ${c.product_type}</div>
+        <div class="meta">${c.source_format} · ${c.accuracy || "?"} · ${c.status}</div>
+      `;
+      list.appendChild(div);
+    });
+  } catch (e) {
+    document.getElementById("convList").innerHTML = '<div class="empty">Could not load conversions. Is the API running?</div>';
+  }
+}
+
+function confBadge(conf) {
+  const cls = (conf || "").toLowerCase();
+  return `<span class="badge ${cls}">${conf}</span>`;
+}
+
+async function loadMethodologyNotes(productType) {
+  try {
+    const r = await fetch(API + "/ground-truth-corrections?product_type=" + encodeURIComponent(productType));
+    const notes = await r.json();
+    if (notes.length === 0) return "";
+
+    const items = notes.map(n => `
+      <div class="methodology-box">
+        <span class="date">${n.date}</span>
+        <span class="cat">${n.category}</span>
+        <div class="field-changed">${n.field_changed}</div>
+        <div>${n.reason}</div>
+      </div>
+    `).join("");
+
+    return `
+      <div class="section-title">
+        <span class="badge methodology">METHODOLOGY</span>
+        Scoring Notes for this Product
+        <button class="link" onclick="toggleMethodology()">show/hide</button>
+      </div>
+      <div class="info-note">
+        These notes explain changes made to the test/answer key used to measure
+        accuracy — separate from the AI's own mapping decisions below. They exist
+        so accuracy numbers can be trusted: every change here is a correction to
+        an outdated or ambiguous answer key, never an adjustment made to match
+        whatever the AI happened to produce.
+      </div>
+      <div id="methodologyBody" class="collapsible-body">${items}</div>
+    `;
+  } catch (e) {
+    return "";
+  }
+}
+
+function toggleMethodology() {
+  const el = document.getElementById("methodologyBody");
+  el.classList.toggle("open");
+}
+
+async function selectConversion(id) {
+  selectedId = id;
+  loadConversions();
+  const panel = document.getElementById("detailPanel");
+  panel.innerHTML = '<div class="empty">Loading...</div>';
+
+  try {
+    const r = await fetch(API + "/conversions/" + id);
+    const c = await r.json();
+
+    let mappingRows = c.field_mappings.map(m => `
+      <tr>
+        <td>${m.source_field}${m.missing_source_field ? ' <span class="badge low">INFERRED</span>' : ''}</td>
+        <td class="cdm-path">${m.cdm_path}</td>
+        <td>${confBadge(m.confidence)}</td>
+        <td>
+          ${m.transformation || ''}
+          ${m.reason ? `<div class="reason-box">${m.reason}</div>` : ''}
+          ${m.was_corrected ? '<div class="reason-box" style="border-color:#16a34a">Corrected by reviewer</div>' : ''}
+        </td>
+        <td><button class="correct-btn" onclick="correctField(${c.id}, ${m.id}, '${m.source_field.replace(/'/g, "\\'")}', '${m.cdm_path.replace(/'/g, "\\'")}')">Correct</button></td>
+      </tr>
+    `).join("");
+
+    const methodologyHtml = await loadMethodologyNotes(c.product_type);
+
+    panel.innerHTML = `
+      <div class="section-title">Conversion #${c.id} — ${c.product_type}</div>
+      <div style="font-size:12px;color:var(--slate);margin-bottom:12px;">
+        Format: ${c.source_format} · Model: ${c.agent_model} · Accuracy: ${c.accuracy || "?"} · ${c.created_at}
+      </div>
+
+      ${methodologyHtml}
+
+      <div class="section-title">Raw Source</div>
+      <pre>${JSON.stringify(c.raw_input, null, 2)}</pre>
+
+      <div class="section-title">Field Mappings <span style="font-weight:400;color:var(--slate);font-size:11px;">(AI's own reasoning per field)</span></div>
+      <table>
+        <thead><tr><th>Source Field</th><th>CDM Path</th><th>Confidence</th><th>Details</th><th></th></tr></thead>
+        <tbody>${mappingRows}</tbody>
+      </table>
+
+      <div class="section-title">CDM Output</div>
+      <pre>${JSON.stringify(c.cdm_output, null, 2)}</pre>
+
+      ${c.corrections.length > 0 ? `
+        <div class="section-title">Correction History</div>
+        <table>
+          <thead><tr><th>Field</th><th>Original</th><th>Corrected</th><th>Reviewer</th></tr></thead>
+          <tbody>${c.corrections.map(cr => `
+            <tr><td>${cr.source_field}</td><td class="cdm-path">${cr.original_cdm_path}</td><td class="cdm-path">${cr.corrected_cdm_path}</td><td>${cr.reviewer}</td></tr>
+          `).join("")}</tbody>
+        </table>` : ''}
+    `;
+  } catch (e) {
+    panel.innerHTML = '<div class="empty">Could not load this conversion.</div>';
+  }
+}
+
+async function correctField(conversionId, fieldMappingId, sourceField, originalPath) {
+  const newPath = prompt("Correct CDM path for '" + sourceField + "':", originalPath);
+  if (!newPath || newPath === originalPath) return;
+  const reason = prompt("Reason for this correction:") || "";
+  const reviewer = prompt("Your name:") || "reviewer";
+
+  try {
+    await fetch(API + "/corrections", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        conversion_id: conversionId,
+        field_mapping_id: fieldMappingId,
+        source_field: sourceField,
+        original_cdm_path: originalPath,
+        corrected_cdm_path: newPath,
+        reason: reason,
+        reviewer: reviewer
+      })
+    });
+    selectConversion(conversionId);
+  } catch (e) {
+    alert("Failed to save correction. Is the API running?");
+  }
+}
+
+checkApi();
+loadProducts();
+loadConversions();
+</script>
+</body>
+</html>

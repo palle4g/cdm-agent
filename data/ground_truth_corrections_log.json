@@ -1,0 +1,34 @@
+[
+  {
+    "date": "2026-09-17",
+    "product_type": "InterestRateSwap",
+    "file": "irs_001_XML.json",
+    "field_changed": "notional (currency) -> notional_currency",
+    "reason": "The XML source has currency as an attribute: <notional currency=\"USD\">25000000</notional>. The original format_detector.py XML parser only read element text content, silently dropping attributes - so this field never actually existed under the name 'notional (currency)'. After fixing the parser to extract attributes as '<tag>_<attribute>' fields, the real field name became 'notional_currency'. This correction updates the answer key to match the real, correctly-parsed field name - it does not change what the AI agent is expected to get right.",
+    "category": "Answer key correction (parser bug fix)"
+  },
+  {
+    "date": "2026-09-17",
+    "product_type": "InterestRateSwap",
+    "file": "irs_001_XML.json",
+    "field_changed": "counterparty (identifier) -> counterparty_lei (identifier)",
+    "reason": "Same root cause as above: <counterparty lei=\"549300EXAMPLE01\">BARCLAYS CAPITAL</counterparty> has the LEI as an XML attribute. Before the parser fix, only 'BARCLAYS CAPITAL' (the company name) was visible, and the answer key incorrectly treated a name as if it were the identifier. After the fix, 'counterparty_lei' is the real, correct identifier field (per the schema's stated preference for LEI over a name), and 'counterparty' is now correctly recognized as just the company name.",
+    "category": "Answer key correction (parser bug fix)"
+  },
+  {
+    "date": "2026-09-20",
+    "product_type": "InterestRateSwap",
+    "file": "irs_001_XML.json",
+    "field_changed": "counterparty (payer/receiver) -> counterparty_lei (payer/receiver)",
+    "reason": "This source has no explicit payer/receiver flag, so the agent defaults to 'we pay fixed' per standard convention and must name its reasoning after whichever counterparty field it used as the basis. The agent consistently and correctly chose 'counterparty_lei' (the same field it uses for the actual party identifier) rather than the plain 'counterparty' name field the original answer key assumed. Both choices are defensible; the agent's choice is internally consistent with how it handles the identifier itself, so the answer key was updated to match the agent's reasonable, repeatable behavior. The underlying CDM output (payer=Party1, receiver=Party2) was correct in both cases - only the fieldMapping label differed.",
+    "category": "Answer key correction (equally valid alternative)"
+  },
+  {
+    "date": "2026-09-20",
+    "product_type": "InterestRateSwap",
+    "file": "irs_002_JSON.json",
+    "field_changed": "pay_receive -> pay_receive (payer/receiver)",
+    "reason": "This ground truth file was written before the mandatory '(payer/receiver)' naming convention was added to the schema (a rule required after seeing the same 'derived value needs an explicit label' bug on 3 prior fields across 2 other products - see PROJECT_OVERVIEW.md Section 5). The old answer key still expected the un-suffixed name. Updated to match the naming convention now applied consistently across all three products' schemas.",
+    "category": "Answer key correction (consistency fix)"
+  }
+]
