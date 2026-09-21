@@ -1,0 +1,41 @@
+{
+  "mode": "AGENT (claude-opus-4-6)",
+  "summary": {
+    "pass": 5,
+    "fail": 0,
+    "error": 0,
+    "total": 5
+  },
+  "results": [
+    {
+      "case": "fixedfloat",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "case": "ois",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "case": "zerocoupon",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "case": "basis",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "case": "basis-ois",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    }
+  ]
+}

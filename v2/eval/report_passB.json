@@ -1,0 +1,85 @@
+{
+  "mode": "AGENT (claude-opus-4-6)",
+  "summary": {
+    "pass": 3,
+    "fail": 2,
+    "error": 0,
+    "total": 5
+  },
+  "results": [
+    {
+      "case": "fixedfloat",
+      "status": "FAIL",
+      "diff_count": 6,
+      "diffs": [
+        {
+          "kind": "VALUE",
+          "path": "trade.party[0].@key:external",
+          "ours": "E1",
+          "ref": "E2"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[0].name.@data",
+          "ours": "SELL SECURITIES CO LTD (\"Counterparty\")",
+          "ref": "A BANK(\"ABANK\")"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[0].partyId[0].identifier.@data",
+          "ours": "529900CPTY57S5UCBB52",
+          "ref": "549300ABANKV6BYQOWM67"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[1].@key:external",
+          "ours": "E2",
+          "ref": "E1"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[1].name.@data",
+          "ours": "A BANK(\"ABANK\")",
+          "ref": "SELL SECURITIES CO LTD (\"Counterparty\")"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[1].partyId[0].identifier.@data",
+          "ours": "549300ABANKV6BYQOWM67",
+          "ref": "529900CPTY57S5UCBB52"
+        }
+      ]
+    },
+    {
+      "case": "ois",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "case": "zerocoupon",
+      "status": "FAIL",
+      "diff_count": 1,
+      "diffs": [
+        {
+          "kind": "EXTRA (not in reference)",
+          "path": "trade.product.economicTerms.payout[1].resetDates.resetRelativeTo",
+          "ours": "CalculationPeriodStartDate",
+          "ref": null
+        }
+      ]
+    },
+    {
+      "case": "basis",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    },
+    {
+      "case": "basis-ois",
+      "status": "PASS",
+      "diff_count": 0,
+      "diffs": []
+    }
+  ]
+}

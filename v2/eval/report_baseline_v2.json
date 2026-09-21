@@ -1,0 +1,490 @@
+{
+  "mode": "AGENT (claude-opus-4-6)",
+  "summary": {
+    "pass": 0,
+    "fail": 5,
+    "error": 0,
+    "total": 5
+  },
+  "results": [
+    {
+      "case": "fixedfloat",
+      "status": "FAIL",
+      "diff_count": 14,
+      "diffs": [
+        {
+          "kind": "VALUE",
+          "path": "trade.party[0].@key:external",
+          "ours": "E1",
+          "ref": "E2"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[0].name.@data",
+          "ours": "SELL SECURITIES CO LTD (\"Counterparty\")",
+          "ref": "A BANK(\"ABANK\")"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[0].partyId[0].identifier.@data",
+          "ours": "529900CPTY57S5UCBB52",
+          "ref": "549300ABANKV6BYQOWM67"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[1].@key:external",
+          "ours": "E2",
+          "ref": "E1"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[1].name.@data",
+          "ours": "A BANK(\"ABANK\")",
+          "ref": "SELL SECURITIES CO LTD (\"Counterparty\")"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[1].partyId[0].identifier.@data",
+          "ours": "549300ABANKV6BYQOWM67",
+          "ref": "529900CPTY57S5UCBB52"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.product.economicTerms.payout[1].rateSpecification.@type",
+          "ours": "cdm.product.asset.FloatingRateSpecification",
+          "ref": "cdm.product.asset.FixedRateSpecification"
+        },
+        {
+          "kind": "EXTRA (not in reference)",
+          "path": "trade.product.economicTerms.payout[1].rateSpecification.rateOption",
+          "ours": {
+            "@ref:scoped": "S4"
+          },
+          "ref": null
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.economicTerms.payout[1].rateSpecification.rateSchedule",
+          "ours": null,
+          "ref": {
+            "price": {
+              "@ref:scoped": "S4"
+            }
+          }
+        },
+        {
+          "kind": "LIST LENGTH",
+          "path": "trade.product.taxonomy",
+          "ours": 1,
+          "ref": 2
+        },
+        {
+          "kind": "EXTRA (not in reference)",
+          "path": "trade.product.taxonomy[0].calculated",
+          "ours": true,
+          "ref": null
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.product.taxonomy[0].source",
+          "ours": "ISDA",
+          "ref": "Other"
+        },
+        {
+          "kind": "EXTRA (not in reference)",
+          "path": "trade.tradeLot[0].priceQuantity[1].observable",
+          "ours": {
+            "@data": {
+              "@type": "cdm.observable.asset.InterestRateIndex",
+              "@key:scoped": "S4",
+              "@data": {
+                "@type": "cdm.observable.asset.FloatingRateIndex",
+                "identifier": [
+                  {
+                    "identifier": {
+                      "@data": null
+                    },
+                    "identifierType": "Other"
+                  }
+                ],
+                "assetType": "Other",
+                "assetClass": "InterestRate",
+                "floatingRateIndex": {
+                  "@data": null
+                }
+              }
+            }
+          },
+          "ref": null
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.tradeLot[0].priceQuantity[1].price",
+          "ours": null,
+          "ref": [
+            {
+              "@key:scoped": "S4",
+              "value": 0.002,
+              "unit": {
+                "currency": {
+                  "@data": "EUR"
+                }
+              },
+              "perUnitOf": {
+                "currency": {
+                  "@data": "EUR"
+                }
+              },
+              "priceType": "InterestRate"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "ois",
+      "status": "FAIL",
+      "diff_count": 2,
+      "diffs": [
+        {
+          "kind": "EXTRA (not in reference)",
+          "path": "trade.product.economicTerms.payout[0].resetDates.fixingDates.dayType",
+          "ours": "Business",
+          "ref": null
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.taxonomy",
+          "ours": null,
+          "ref": [
+            {
+              "source": "ISDA",
+              "value": {
+                "name": {
+                  "@data": "InterestRate_IRSwap_FixedFloat_OIS"
+                }
+              },
+              "calculated": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "zerocoupon",
+      "status": "FAIL",
+      "diff_count": 9,
+      "diffs": [
+        {
+          "kind": "EXTRA (not in reference)",
+          "path": "trade.contractDetails",
+          "ours": {
+            "documentation": [
+              {
+                "legalAgreementIdentification": {
+                  "agreementName": {
+                    "agreementType": "Confirmation"
+                  }
+                },
+                "contractualParty": [
+                  {
+                    "@ref:external": "E1"
+                  },
+                  {
+                    "@ref:external": "E2"
+                  }
+                ]
+              }
+            ]
+          },
+          "ref": null
+        },
+        {
+          "kind": "EXTRA (not in reference)",
+          "path": "trade.party[0].name",
+          "ours": {
+            "@data": "Party 1"
+          },
+          "ref": null
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[0].partyId[0].identifier.@data",
+          "ours": "party1",
+          "ref": "Party 1"
+        },
+        {
+          "kind": "EXTRA (not in reference)",
+          "path": "trade.party[1].name",
+          "ours": {
+            "@data": "Party 2"
+          },
+          "ref": null
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[1].partyId[0].identifier.@data",
+          "ours": "party2",
+          "ref": "Party 2"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.product.economicTerms.payout[0].calculationPeriodDates.terminationDate.adjustableDate.unadjustedDate",
+          "ours": "2018-02-20",
+          "ref": "2020-02-22"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.product.economicTerms.payout[1].calculationPeriodDates.terminationDate.adjustableDate.unadjustedDate",
+          "ours": "2018-02-20",
+          "ref": "2020-02-22"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.product.economicTerms.payout[1].resetDates.fixingDates.periodMultiplier",
+          "ours": 2,
+          "ref": -2
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.taxonomy",
+          "ours": null,
+          "ref": [
+            {
+              "source": "ISDA",
+              "value": {
+                "name": {
+                  "@data": "InterestRate_IRSwap_FixedFloat_ZeroCoupon"
+                }
+              },
+              "calculated": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "basis",
+      "status": "FAIL",
+      "diff_count": 7,
+      "diffs": [
+        {
+          "kind": "VALUE",
+          "path": "trade.party[0].name.@data",
+          "ours": "A BANK",
+          "ref": "A BANK(\"ABANK\")"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[1].name.@data",
+          "ours": "SELL SECURITIES CO LTD",
+          "ref": "SELL SECURITIES CO LTD (\"Counterparty\")"
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.economicTerms.payout[0].calculationPeriodDates.@key:external",
+          "ours": null,
+          "ref": "E3"
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.economicTerms.payout[0].resetDates",
+          "ours": null,
+          "ref": {
+            "@key:external": "E4",
+            "calculationPeriodDatesReference": {
+              "@ref:external": "E3"
+            },
+            "resetRelativeTo": "CalculationPeriodStartDate",
+            "fixingDates": {
+              "periodMultiplier": 0,
+              "period": "D",
+              "businessDayConvention": "PRECEDING",
+              "dateRelativeTo": {
+                "@ref:external": "E4"
+              }
+            },
+            "resetFrequency": {
+              "periodMultiplier": 1,
+              "period": "W"
+            },
+            "resetDatesAdjustments": {
+              "businessDayConvention": "MODFOLLOWING"
+            }
+          }
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.economicTerms.payout[1].calculationPeriodDates.@key:external",
+          "ours": null,
+          "ref": "E5"
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.economicTerms.payout[1].resetDates",
+          "ours": null,
+          "ref": {
+            "@key:external": "E6",
+            "calculationPeriodDatesReference": {
+              "@ref:external": "E5"
+            },
+            "resetRelativeTo": "CalculationPeriodStartDate",
+            "fixingDates": {
+              "periodMultiplier": -2,
+              "period": "D",
+              "dayType": "Business",
+              "businessDayConvention": "NONE",
+              "dateRelativeTo": {
+                "@ref:external": "E6"
+              }
+            },
+            "resetFrequency": {
+              "periodMultiplier": 3,
+              "period": "M"
+            },
+            "resetDatesAdjustments": {
+              "businessDayConvention": "MODFOLLOWING"
+            }
+          }
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.taxonomy",
+          "ours": null,
+          "ref": [
+            {
+              "source": "ISDA",
+              "value": {
+                "name": {
+                  "@data": "InterestRate_IRSwap_Basis"
+                }
+              },
+              "calculated": true
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "case": "basis-ois",
+      "status": "FAIL",
+      "diff_count": 9,
+      "diffs": [
+        {
+          "kind": "EXTRA (not in reference)",
+          "path": "trade.party[0].partyId[0].identifierType",
+          "ours": "dummyPartyId",
+          "ref": null
+        },
+        {
+          "kind": "EXTRA (not in reference)",
+          "path": "trade.party[1].partyId[0].identifierType",
+          "ours": "dummyPartyId",
+          "ref": null
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.economicTerms.payout[0].calculationPeriodDates.@key:external",
+          "ours": null,
+          "ref": "E4"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.product.economicTerms.payout[0].calculationPeriodDates.calculationPeriodFrequency.period",
+          "ours": "3M",
+          "ref": "M"
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.economicTerms.payout[0].resetDates",
+          "ours": null,
+          "ref": {
+            "@key:external": "E5",
+            "calculationPeriodDatesReference": {
+              "@ref:external": "E4"
+            },
+            "resetRelativeTo": "CalculationPeriodStartDate",
+            "fixingDates": {
+              "periodMultiplier": -2,
+              "period": "D",
+              "dayType": "Business",
+              "businessDayConvention": "NONE",
+              "businessCentersReference": {
+                "@ref:external": "E3"
+              },
+              "dateRelativeTo": {
+                "@ref:external": "E5"
+              }
+            },
+            "resetFrequency": {
+              "periodMultiplier": 3,
+              "period": "M"
+            },
+            "resetDatesAdjustments": {
+              "businessDayConvention": "MODFOLLOWING",
+              "businessCenters": {
+                "businessCentersReference": {
+                  "@ref:external": "E3"
+                }
+              }
+            }
+          }
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.economicTerms.payout[1].calculationPeriodDates.@key:external",
+          "ours": null,
+          "ref": "E6"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.product.economicTerms.payout[1].calculationPeriodDates.calculationPeriodFrequency.period",
+          "ours": "3M",
+          "ref": "M"
+        },
+        {
+          "kind": "MISSING (in ours)",
+          "path": "trade.product.economicTerms.payout[1].resetDates",
+          "ours": null,
+          "ref": {
+            "@key:external": "E7",
+            "calculationPeriodDatesReference": {
+              "@ref:external": "E6"
+            },
+            "resetRelativeTo": "CalculationPeriodStartDate",
+            "fixingDates": {
+              "periodMultiplier": -2,
+              "period": "D",
+              "dayType": "Business",
+              "businessDayConvention": "NONE",
+              "businessCentersReference": {
+                "@ref:external": "E3"
+              },
+              "dateRelativeTo": {
+                "@ref:external": "E7"
+              }
+            },
+            "resetFrequency": {
+              "periodMultiplier": 3,
+              "period": "M"
+            },
+            "resetDatesAdjustments": {
+              "businessDayConvention": "MODFOLLOWING",
+              "businessCenters": {
+                "businessCentersReference": {
+                  "@ref:external": "E3"
+                }
+              }
+            }
+          }
+        },
+        {
+          "kind": "LIST LENGTH",
+          "path": "trade.product.taxonomy",
+          "ours": 1,
+          "ref": 2
+        }
+      ]
+    }
+  ]
+}

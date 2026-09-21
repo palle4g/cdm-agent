@@ -7,40 +7,32 @@ Pipeline per case:
     raw input --extract--> IRSTradeInput --build_irs_trade_state--> CDM dict
     CDM dict  --normalize+diff--> vs expected_cdm.json   =>  pass if 0 diffs
 
-The build + diff halves are already proven (v2/tests/compare_reference.py,
-5/5 exact). This harness measures the EXTRACTION step: raw legacy record ->
-IRSTradeInput. The builder and the normalizer are imported, not re-defined,
-so "correct" means the same thing everywhere.
-
-Extractor plug point:
-    --oracle    use the known-correct IRSTradeInput from compare_reference.py
-                (proves the harness itself; expect 5/5 pass)
-    (default)   call agent_extract(raw_text, fmt) — the real agent. Until it
-                is implemented it raises NotImplementedError, which the runner
-                reports as an ERROR row rather than crashing.
+Build and diff are already proven (v2/tests/compare_reference.py, 5/5 exact).
+This harness measures the EXTRACTION step: raw legacy record -> IRSTradeInput.
 
 Run from repo root:
-    python v2/eval/run_eval.py --oracle          # harness self-test
-    python v2/eval/run_eval.py                    # real agent
+    python v2/eval/run_eval.py --oracle          # harness self-test (uses fixtures)
+    python v2/eval/run_eval.py                    # real agent (Claude API)
     python v2/eval/run_eval.py --oracle basis     # single case
     python v2/eval/run_eval.py --json report.json # machine-readable output
+    python v2/eval/run_eval.py --model claude-sonnet-4-6
+    python v2/eval/run_eval.py --verbose          # print extracted IRSTradeInput
 """
 import sys, os, json, argparse
 sys.path.insert(0, '.')
 
 from v2.src.builders.cdm_builder import build_irs_trade_state
-# reuse the single source of truth for "equal"
 from v2.tests.compare_reference import normalize, diff, CASES as ORACLE_CASES
+from v2.src.agent.extractor import extract_irs_trade, DEFAULT_MODEL
 
 GT_DIR = 'v2/data/ground_truth/interest_rate_swap'
 
-# case -> (subdir, input filename, format hint passed to the extractor)
 CASES = {
     "fixedfloat": ("fixedfloat", "input.txt", "pipe_blotter"),
-    "ois": ("ois", "input.json", "booking_json"),
+    "ois":        ("ois", "input.json", "booking_json"),
     "zerocoupon": ("zerocoupon", "input.txt", "confirmation_text"),
-    "basis": ("basis", "input.dat", "fixed_width"),
-    "basis-ois": ("basis-ois", "input.txt", "kv_message"),
+    "basis":      ("basis", "input.dat", "fixed_width"),
+    "basis-ois":  ("basis-ois", "input.txt", "kv_message"),
 }
 
 
@@ -56,34 +48,19 @@ def load_expected(case):
         return json.load(f)
 
 
-# ── extractor plug point ──────────────────────────────────────────────────────
-
 def oracle_extract(case, raw_text, fmt):
-    """Return the known-correct IRSTradeInput (from the compare fixtures)."""
     fixture_fn, _ = ORACLE_CASES[case]
     return fixture_fn()
 
 
-def agent_extract(raw_text, fmt):
-    """
-    Real agent: raw legacy record -> IRSTradeInput.
-    TODO: wire to v2 agent (LLM extraction against the schema, using the
-    mapping-conventions table in the ground-truth README as configuration).
-    """
-    raise NotImplementedError("agent_extract not implemented yet — use --oracle")
-
-
-# ── run one case ──────────────────────────────────────────────────────────────
-
-def run_case(case, use_oracle):
+def run_case(case, use_oracle, model, verbose):
     raw_text, fmt = load_raw(case)
     expected = load_expected(case)
-
     try:
         if use_oracle:
             trade_input = oracle_extract(case, raw_text, fmt)
         else:
-            trade_input = agent_extract(raw_text, fmt)
+            trade_input = extract_irs_trade(raw_text, fmt, model=model, verbose=verbose)
     except NotImplementedError as e:
         return {"case": case, "status": "ERROR", "error": str(e), "diffs": None}
     except Exception as e:
@@ -101,24 +78,26 @@ def run_case(case, use_oracle):
     }
 
 
-# ── main ──────────────────────────────────────────────────────────────────────
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("cases", nargs="*", help="case names (default: all)")
     ap.add_argument("--oracle", action="store_true",
                     help="use known-correct IRSTradeInput (harness self-test)")
+    ap.add_argument("--model", default=DEFAULT_MODEL,
+                    help=f"Claude model id (default: {DEFAULT_MODEL})")
     ap.add_argument("--json", metavar="PATH", help="write full report as JSON")
     ap.add_argument("--show", type=int, default=15, help="max diffs to print per case")
+    ap.add_argument("--verbose", action="store_true",
+                    help="print the extracted IRSTradeInput per case")
     args = ap.parse_args()
 
     names = args.cases or list(CASES)
-    mode = "ORACLE" if args.oracle else "AGENT"
+    mode = "ORACLE" if args.oracle else f"AGENT ({args.model})"
     print(f"=== IRS extraction eval [{mode}] ===\n")
 
     results, npass, nfail, nerr = [], 0, 0, 0
     for case in names:
-        r = run_case(case, args.oracle)
+        r = run_case(case, args.oracle, args.model, args.verbose)
         results.append(r)
         if r["status"] == "PASS":
             npass += 1
@@ -147,7 +126,6 @@ def main():
                       f, indent=2)
         print(f"report written: {args.json}")
 
-    # exit non-zero if anything didn't pass (useful for CI later)
     sys.exit(0 if (nfail == 0 and nerr == 0) else 1)
 
 

@@ -7,11 +7,17 @@ compare_fixedfloat.py.
 
 Normalization before comparing (both sides):
   - '@key' / '@ref' bare hash ids (generator artifacts) dropped
-  - key ids canonicalised (S1.., E1..) and refs remapped, so id spellings
-    don't count as diffs
+  - key ids canonicalised by the JSON path of their FIRST REFERENCE (S1..,
+    E1..) and refs remapped, so id spellings AND definition-encounter
+    order don't count as diffs. Two structurally identical docs get the
+    same canonical names even if their `party[]` and `counterparty[]`
+    sections were emitted in a different sequence.
   - key definitions that nothing references are dropped (cosmetic)
   - refs to keys defined nowhere in the file become 'UNRESOLVED:<id>' on
     both sides (e.g. basis-ois's dangling 'primaryBusinessCenters')
+
+Wrong ref targets still surface as diffs (at the ref site or at the
+downstream sibling values), so the fairness fix does not mask real bugs.
 
 Run from repo root:  python v2/tests/compare_reference.py [name ...]
 Names: fixedfloat, ois, zerocoupon, basis, basis-ois (default: all)
@@ -294,57 +300,73 @@ CASES = {
 }
 
 
-# ── normalization ─────────────────────────────────────────────────────────────
+# ── normalization (identity-aware) ────────────────────────────────────────────
+# Canonicalize each key id by the JSON PATH of its first reference. Two
+# structurally identical docs get the same canonical names regardless of the
+# depth-first order in which their key DEFINITIONS happen to be encountered
+# (e.g. our builder and the reference emit `party[]` at different positions).
+# Wrong ref targets still surface: the failure moves from the ref number
+# itself to the downstream sibling values at the target, which is semantically
+# the right place for it.
 
-def _collect(node, refs, defs_order):
+def _walk(node, path, first_ref):
     if isinstance(node, dict):
-        for kind in ("@ref:scoped", "@ref:external"):
-            if kind in node:
-                refs.add((kind.replace("@ref", "@key"), node[kind]))
-        for kind in ("@key:scoped", "@key:external"):
-            if kind in node and (kind, node[kind]) not in defs_order:
-                defs_order[(kind, node[kind])] = None
-        for v in node.values():
-            _collect(v, refs, defs_order)
+        for k, v in node.items():
+            child_path = f"{path}.{k}" if path else k
+            if k == "@ref:scoped":
+                first_ref.setdefault(("@key:scoped", v), child_path)
+            elif k == "@ref:external":
+                first_ref.setdefault(("@key:external", v), child_path)
+            else:
+                _walk(v, child_path, first_ref)
     elif isinstance(node, list):
-        for item in node:
-            _collect(item, refs, defs_order)
+        for i, item in enumerate(node):
+            _walk(item, f"{path}[{i}]", first_ref)
 
 
-def _normalize(node, mapping):
+def _apply(node, mapping):
     if isinstance(node, dict):
         out = {}
         for k, v in node.items():
             if k in ("@key", "@ref"):
                 continue
             if k in ("@key:scoped", "@key:external"):
-                if (k, v) in mapping:            # referenced -> canonical id
+                if (k, v) in mapping:
                     out[k] = mapping[(k, v)]
-                # unreferenced definitions are dropped (cosmetic)
+                # unreferenced defs dropped (cosmetic)
             elif k == "@ref:scoped":
                 out[k] = mapping.get(("@key:scoped", v), f"UNRESOLVED:{v}")
             elif k == "@ref:external":
                 out[k] = mapping.get(("@key:external", v), f"UNRESOLVED:{v}")
             else:
-                out[k] = _normalize(v, mapping)
+                out[k] = _apply(v, mapping)
         return out
     if isinstance(node, list):
-        return [_normalize(item, mapping) for item in node]
+        return [_apply(item, mapping) for item in node]
     if isinstance(node, float) and node.is_integer():
         return int(node)
     return node
 
 
 def normalize(doc):
-    refs, defs_order = set(), {}
-    _collect(doc, refs, defs_order)
+    first_ref = {}
+    _walk(doc, "", first_ref)
     mapping, counters = {}, {"@key:scoped": 0, "@key:external": 0}
-    for (kind, ident) in defs_order:
-        if (kind, ident) in refs:
-            counters[kind] += 1
-            prefix = "S" if kind == "@key:scoped" else "E"
-            mapping[(kind, ident)] = f"{prefix}{counters[kind]}"
-    return _normalize(copy.deepcopy(doc), mapping)
+    ordered = sorted(first_ref.items(), key=lambda kv: (kv[0][0], kv[1]))
+    for (kind, ident), _path in ordered:
+        counters[kind] += 1
+        prefix = "S" if kind == "@key:scoped" else "E"
+        mapping[(kind, ident)] = f"{prefix}{counters[kind]}"
+    result = _apply(copy.deepcopy(doc), mapping)
+    # Sort party[] by first partyId identifier value so positional order
+    # (which is semantically meaningless in CDM) doesn't cause false diffs.
+    parties = result.get('trade', {}).get('party', [])
+    if parties:
+        def _party_sort_key(p):
+            ids = p.get('partyId', [{}])
+            return ids[0].get('identifier', {}).get('@data', '') if ids else ''
+        result['trade']['party'] = sorted(parties, key=_party_sort_key)
+    return result
 
 
 # ── diff ──────────────────────────────────────────────────────────────────────
