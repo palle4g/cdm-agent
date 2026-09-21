@@ -1,0 +1,46 @@
+MSGTYPE=TRADE_CAPTURE
+MSGSRC=COMMODITY-RATES-GW
+MSGTS=2021-08-18T15:11:44Z
+
+TRADE.DATE=2021-08-18
+TRADE.REF.BANKA=BankA1234        ; captured in Bank B trade-id space
+TRADE.REF.BANKB=BankB5678        ; captured in Bank A trade-id space
+PRODUCT.TYPE=BASIS_SWAP_OIS
+PRODUCT.GTR_ID=Commodity:Metals:Precious:LoanLease:Cash
+PRODUCT.GTR_SCHEME=DTCC GTR-Product-Id
+PRODUCT.ASSET_CLASS.PRIMARY=Commodity
+DOCS.CONFIRMATION=Y
+DOCS.MASTER=N
+
+PARTY.1.ID=Bank A                ; dummy-party-id coding scheme (test env, no LEI)
+PARTY.1.NAME=Bank a
+PARTY.1.ROLE=PARTY1
+PARTY.2.ID=Bank B                ; dummy-party-id coding scheme (test env, no LEI)
+PARTY.2.NAME=Bank B
+PARTY.2.ROLE=PARTY2
+
+COMMON.NOTIONAL=100 XAU          ; troy ounces, gold
+COMMON.EFFECTIVE=2021-08-18 ADJ=MF CENTERS=PRIMARY(*)
+COMMON.MATURITY=2022-08-18 ADJ=MF CENTERS=PRIMARY
+COMMON.DCF=ACT/365F
+COMMON.CALC.FREQ=3M ROLL=1 ADJ=MF CENTERS=PRIMARY
+COMMON.PAY.FREQ=3M REL=PERIOD_END ADJ=MF CENTERS=PRIMARY
+COMMON.PAY.FIRST=2021-11-18
+COMMON.RESET.REL=PERIOD_START
+COMMON.RESET.FREQ=3M ADJ=MF CENTERS=PRIMARY
+COMMON.FIXING=2D PRIOR TYPE=BUSINESS ADJ=NONE CENTERS=PRIMARY
+; (*) NOTE: leg 1 effective date carries NO business-center reference in
+;     the venue record; leg 2 effective date does. All other adjusted
+;     dates on both legs reference the primary business centers schedule.
+;     The primary business centers schedule itself is NOT included in
+;     this message (maintained in the master schedule system).
+
+LEG.1.PAYER=PARTY1
+LEG.1.TYPE=OIS_FLOAT
+LEG.1.INDEX=USD-SOFR-OIS Compound
+LEG.2.PAYER=PARTY2
+LEG.2.TYPE=FLOAT_UNNAMED_INDEX   ; index known only by identifier, not an
+LEG.2.INDEX=GOFO                 ;   ISDA floating-rate-index name
+LEG.2.SPREAD=-1BP                ; added to index
+
+END

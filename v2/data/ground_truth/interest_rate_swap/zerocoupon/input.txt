@@ -1,0 +1,57 @@
+                        TRADE CONFIRMATION
+
+Date of this Confirmation: 20 February 2018
+
+From: Party 1
+To:   Party 2
+
+Re: Zero Coupon Interest Rate Swap Transaction
+
+Unique Transaction Identifier (UTI): IRS858TH30 (version 1),
+issued by Party 1 under the FpML external UTI coding scheme.
+
+The parties to this Transaction are identified in our records under the
+generic FpML external party coding scheme as "Party 1" and "Party 2"
+respectively (no LEI recorded for this test booking).
+
+1. General Terms
+   Trade Date:                20 February 2018
+   Effective Date:            22 February 2018, subject to adjustment
+                              (Modified Following)
+   Termination Date:          22 February 2020, subject to adjustment
+                              (Modified Following)
+   First Period Start Date:   20 February 2018
+
+2. Fixed Amounts (payable by Party 1)
+   Fixed Rate Payer:          Party 1
+   Notional Amount:           GBP 100,000
+   Fixed Rate:                3.00 per cent per annum
+   Day Count Fraction:        30E/360
+   Payment:                   Single payment at Termination (zero coupon;
+                              calculation and payment period = entire Term)
+   First Period Start Adj:    Modified Following
+   Calculation Adjustments:   Modified Following
+   Payment Adjustments:       Modified Following
+
+3. Floating Amounts (payable by Party 2)
+   Floating Rate Payer:       Party 2
+   Notional Amount:           GBP 100,000
+   Floating Rate Option:      GBP-LIBOR-ISDA
+   Designated Maturity:       3 months
+   Day Count Fraction:        Actual/360
+   Calculation Periods:       Quarterly (3M), roll day 22,
+                              period-end adjustment: NONE
+   First Period Start Adj:    NONE
+   Compounding:               Flat
+   Reset Frequency:           Quarterly (3M), Modified Following
+   Fixing:                    2 Business Days prior to each Reset Date,
+                              no business day convention (NONE)
+   Payment:                   Single payment at Termination (entire Term)
+   Payment Adjustments:       Modified Following
+
+4. Upfront Fee
+   Party 1 shall pay to Party 2 an upfront fee of USD 200 on
+   22 February 2018 (adjusted Modified Following).
+
+Please confirm the foregoing correctly sets forth the terms of our
+agreement by executing this Confirmation and returning it to us.

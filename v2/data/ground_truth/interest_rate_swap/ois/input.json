@@ -1,0 +1,64 @@
+{
+  "system": "RATES-BOOKER v4.11",
+  "extract_ts": "2023-02-16T17:40:03Z",
+  "deal": {
+    "deal_ref": "FpML-test-7c",
+    "ref_assigned_by": "ABANK",
+    "ref_scheme_hint": "partyA-internal",
+    "trade_dt": "2023-02-16",
+    "product_code": "IRS_OIS",
+    "docs": {
+      "master_agreement": "ISDA",
+      "master_agreement_venue": "SwapsWire",
+      "confirmation_exists": true
+    }
+  },
+  "books": {
+    "us": {
+      "legal_name": "A BANK(\"ABANK\")",
+      "lei": "549300ABANKV6BYQOWM67",
+      "cpty_role": "PARTY_1"
+    },
+    "them": {
+      "legal_name": "SELL SECURITIES CO LTD (\"Counterparty\")",
+      "lei": "529900CPTY57S5UCBB52",
+      "cpty_role": "PARTY_2"
+    }
+  },
+  "legs": [
+    {
+      "leg_no": 1,
+      "direction": "we_pay",
+      "kind": "OIS_FLOAT",
+      "rate_index": "GBP-SONIA-OIS Compound",
+      "notional": {"amount": 1100000, "ccy": "GBP"},
+      "daycount": "ACT/365F",
+      "start": "2023-02-16",
+      "start_bdc": "NONE",
+      "end": "2033-02-16",
+      "end_bdc": "MODFOLLOWING",
+      "sched": {"freq": "1Y", "roll_day": 16, "adj": "MODFOLLOWING"},
+      "pay": {"freq": "1Y", "rel_to": "CALC_PERIOD_END", "adj": "MODFOLLOWING"},
+      "reset": {
+        "rel_to": "CALC_PERIOD_END",
+        "fixing_lag": {"days": 0, "bdc": "PRECEDING"},
+        "freq": "1Y",
+        "adj": "MODFOLLOWING"
+      }
+    },
+    {
+      "leg_no": 2,
+      "direction": "we_receive",
+      "kind": "FIXED",
+      "fixed_rate_pct": 3.537,
+      "notional": {"amount": 1100000, "ccy": "GBP"},
+      "daycount": "ACT/365F",
+      "start": "2023-02-16",
+      "start_bdc": "NONE",
+      "end": "2033-02-16",
+      "end_bdc": "MODFOLLOWING",
+      "sched": {"freq": "1Y", "roll_day": 16, "adj": "MODFOLLOWING"},
+      "pay": {"freq": "1Y", "rel_to": "CALC_PERIOD_END", "adj": "MODFOLLOWING"}
+    }
+  ]
+}
