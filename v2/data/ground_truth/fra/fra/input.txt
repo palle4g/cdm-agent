@@ -1,0 +1,31 @@
+FORWARD RATE AGREEMENT — DEAL TICKET
+
+Trade Date:                 14 May 1991
+Reference (Reset) Date:     17 July 1991 (the FRA's effective/fixing date)
+Settlement/Maturity Date:   17 January 1992
+Payment Date:               17 July 1991, adjusted Following
+
+Notional:                   CHF 25,000,000
+Day Count:                  ACT/360
+
+Fixed Rate Payer:           Party 1 (HSBC)
+Fixed Rate:                 4.00% p.a.
+Fixed Interest Period:      6 Months
+
+Floating Rate Payer:        Party 2 (ABN AMRO)
+Floating Index:              CHF-LIBOR-BBA
+Designated Maturity:        6 Months
+Fixing:                      2 Business Days prior to the Reset Date,
+                             no adjustment
+
+Party 1:  HSBC
+          LEI TR24TWEY5RVRQV65HD49
+          Our trade reference (assigned by HSBC): MB87623
+          scheme www.hsbc.com/swaps/trade-id
+
+Party 2:  ABN AMRO
+          LEI BFXS5XCH7N0Y05NIXW11
+          Their trade reference (assigned by ABN AMRO): AA9876
+          scheme www.abnamro.com/swaps/trade-id
+
+Product:  Forward Rate Agreement (FRA)
