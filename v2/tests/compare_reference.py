@@ -26,6 +26,8 @@ from v2.src.schemas.interest_rate_swap import (
     FXLinkedNotionalInput, PrincipalPaymentScheduleInput, TaxonomyInput,
 )
 from v2.src.builders.cdm_builder import build_irs_trade_state
+from v2.src.schemas.fra import FRAInput
+from v2.src.builders.fra_builder import build_fra_trade_state
 
 REF_DIR = 'v2/data/reference/interest_rate_swap'
 LEI_SCHEME = "http://www.fpml.org/coding-scheme/external/iso17442"
@@ -516,15 +518,50 @@ def _xccy_basis():
         ])
 
 
+def _fra():
+    return FRAInput(
+        trade_date="1991-05-14", trade_id="MB87623",
+        isda_taxonomy="InterestRate_Fra",
+        parties=[
+            PartyInput(key="party1", lei="TR24TWEY5RVRQV65HD49",
+                       lei_scheme=LEI_SCHEME, id_type="LEI"),
+            PartyInput(key="party2", lei="BFXS5XCH7N0Y05NIXW11",
+                       lei_scheme=LEI_SCHEME, id_type="LEI"),
+        ],
+        party1_key="party1", party2_key="party2",
+        trade_identifiers=[
+            TradeIdentifierInput(issuer_key="party1",
+                                 id_scheme="http://www.hsbc.com/swaps/trade-id",
+                                 id_value="MB87623"),
+            TradeIdentifierInput(issuer_key="party2",
+                                 id_scheme="http://www.abnamro.com/swaps/trade-id",
+                                 id_value="AA9876"),
+        ],
+        notional_amount=25000000, notional_currency="CHF",
+        day_count_fraction="ACT/360",
+        fixed_rate=0.04,
+        floating_index="CHF-LIBOR-BBA",
+        index_tenor_multiplier=6, index_tenor_period="M",
+        reset_date="1991-07-17", reset_date_key="resetDate",
+        termination_date="1992-01-17",
+        payment_date="1991-07-17", payment_date_bdc="FOLLOWING",
+        fixing_offset_multiplier=-2, fixing_offset_period="D",
+        fixing_offset_day_type="Business", fixing_bdc="NONE",
+        fixed_leg_payment_freq_multiplier=6, fixed_leg_payment_freq_period="M",
+        fixed_leg_payer="Party1", floating_leg_payer="Party2",
+    )
+
+
 CASES = {
-    "fixedfloat":     (_fixedfloat,     f"{REF_DIR}/swaps/irs-fixedfloat.json"),
-    "ois":            (_ois,             f"{REF_DIR}/swaps/irs-fixedfloat-ois.json"),
-    "zerocoupon":     (_zerocoupon,      f"{REF_DIR}/swaps/irs-fixedfloat-zerocoupon.json"),
-    "basis":          (_basis,           f"{REF_DIR}/cross_currency/irs-basis.json"),
-    "basis-ois":      (_basis_ois,       f"{REF_DIR}/cross_currency/irs-basis-ois.json"),
-    "xccy-fixedfixed":(_xccy_fixedfixed, f"{REF_DIR}/cross_currency/irs-xccy-fixedfixed.json"),
-    "xccy-fixedfloat":(_xccy_fixedfloat, f"{REF_DIR}/cross_currency/irs-xccy-fixedfloat.json"),
-    "xccy-basis":     (_xccy_basis,      f"{REF_DIR}/cross_currency/irs-xccy-basis.json"),
+    "fixedfloat":     (_fixedfloat,     f"{REF_DIR}/swaps/irs-fixedfloat.json",              build_irs_trade_state),
+    "ois":            (_ois,             f"{REF_DIR}/swaps/irs-fixedfloat-ois.json",           build_irs_trade_state),
+    "zerocoupon":     (_zerocoupon,      f"{REF_DIR}/swaps/irs-fixedfloat-zerocoupon.json",     build_irs_trade_state),
+    "basis":          (_basis,           f"{REF_DIR}/cross_currency/irs-basis.json",            build_irs_trade_state),
+    "basis-ois":      (_basis_ois,       f"{REF_DIR}/cross_currency/irs-basis-ois.json",         build_irs_trade_state),
+    "xccy-fixedfixed":(_xccy_fixedfixed, f"{REF_DIR}/cross_currency/irs-xccy-fixedfixed.json",   build_irs_trade_state),
+    "xccy-fixedfloat":(_xccy_fixedfloat, f"{REF_DIR}/cross_currency/irs-xccy-fixedfloat.json",   build_irs_trade_state),
+    "xccy-basis":     (_xccy_basis,      f"{REF_DIR}/cross_currency/irs-xccy-basis.json",        build_irs_trade_state),
+    "fra":            (_fra,             f"{REF_DIR}/swaps/irs-fra.json",                        build_fra_trade_state),
 }
 
 
@@ -612,8 +649,8 @@ def diff(ours, ref, path, out):
 # ── run ───────────────────────────────────────────────────────────────────────
 
 def run_case(name, show=25):
-    fixture_fn, ref_path = CASES[name]
-    ours_raw = build_irs_trade_state(fixture_fn())
+    fixture_fn, ref_path, builder_fn = CASES[name]
+    ours_raw = builder_fn(fixture_fn())
     with open(ref_path) as f:
         ref_raw = json.load(f)
     out_path = f"v2/tests/out_{name}.json"
