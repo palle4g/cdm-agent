@@ -127,19 +127,27 @@ party ordering (the party listed/labeled first in the data is CDM `Party2`,
 not `Party1`). This is a property of the FINXIS test fixture itself, not a
 real-world convention.
 
-Both Claude Sonnet 4.6 and Claude Opus 4.6 assign the intuitive (but
-incorrect, for this file) mapping even when the raw input explicitly states
-the correct, counter-intuitive assignment in a highlighted note. The result
-is a 2-diff mismatch confined to internal `@key:external` numbering — the
-trade's economics (notionals, rates, dates, principal exchange) are fully
-correct in both cases; only the party-key labeling artifact differs.
+Claude Sonnet 4.6, Claude Opus 4.6, and Claude Opus 5.5 all assign the
+intuitive (but incorrect, for this file) mapping even when the raw input
+explicitly states the correct, counter-intuitive assignment in a
+highlighted note. The result is a 2-diff mismatch confined to internal
+`@key:external` numbering — the trade's economics (notionals, rates, dates,
+principal exchange) are fully correct in every case; only the party-key
+labeling artifact differs.
 
-Tested and confirmed on both models (2025-09-24); not pursued further given:
+Tested and confirmed on three models across two generations (2025-09-24);
+not pursued further given:
 - it reflects a quirk of this specific test fixture, not a representative
   real-world pattern
 - it does not affect the correctness of any economically meaningful field
-- both models behave identically, indicating a systematic default rather
-  than a fixable prompt gap
+- all three models behave identically despite a full generation gap
+  (4.6 -> 5.5), indicating a systematic default in how models weigh an
+  explicit disambiguation note against a document's natural party
+  ordering — not a capability gap that a stronger model closes
+- a structural fix (e.g. having the raw input state the role assignment
+  using the exact schema field names) would likely work, but would make
+  the test input unrealistically aligned to the schema rather than
+  representative of a real legacy record
 
 If this pattern turns out to matter for real production data, revisit with
 a stronger structural cue (e.g. reformatting the disambiguation note as a
