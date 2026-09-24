@@ -1,37 +1,33 @@
 """
 v2/tests/compare_reference.py
 
-Builds each single-currency IRS reference trade with the plain-dict builder
-and diffs the output against the FINXIS reference file. Supersedes
-compare_fixedfloat.py.
+Builds each IRS reference trade with the plain-dict builder and diffs the
+output against the FINXIS reference file. Covers all 8 reference files:
+5 single-currency (Phase 3a) + 3 cross-currency (Phase 3b).
 
 Normalization before comparing (both sides):
-  - '@key' / '@ref' bare hash ids (generator artifacts) dropped
-  - key ids canonicalised by the JSON path of their FIRST REFERENCE (S1..,
-    E1..) and refs remapped, so id spellings AND definition-encounter
-    order don't count as diffs. Two structurally identical docs get the
-    same canonical names even if their `party[]` and `counterparty[]`
-    sections were emitted in a different sequence.
-  - key definitions that nothing references are dropped (cosmetic)
-  - refs to keys defined nowhere in the file become 'UNRESOLVED:<id>' on
-    both sides (e.g. basis-ois's dangling 'primaryBusinessCenters')
-
-Wrong ref targets still surface as diffs (at the ref site or at the
-downstream sibling values), so the fairness fix does not mask real bugs.
+  - '@key' / '@ref' bare hash ids dropped
+  - key ids canonicalised by first-reference path (S1.., E1..) so definition
+    order doesn't cause false diffs
+  - unreferenced key definitions dropped (cosmetic)
+  - dangling refs become 'UNRESOLVED:<id>' on both sides
+  - party[] sorted by first partyId identifier value
+  - float.is_integer() -> int
 
 Run from repo root:  python v2/tests/compare_reference.py [name ...]
-Names: fixedfloat, ois, zerocoupon, basis, basis-ois (default: all)
+Names: fixedfloat, ois, zerocoupon, basis, basis-ois,
+       xccy-fixedfixed, xccy-fixedfloat, xccy-basis  (default: all)
 """
 import sys, json, copy
 sys.path.insert(0, '.')
 
 from v2.src.schemas.interest_rate_swap import (
-    IRSTradeInput, LegInput, PartyInput, TradeIdentifierInput
+    IRSTradeInput, LegInput, PartyInput, TradeIdentifierInput,
+    FXLinkedNotionalInput, PrincipalPaymentScheduleInput, TaxonomyInput,
 )
 from v2.src.builders.cdm_builder import build_irs_trade_state
 
 REF_DIR = 'v2/data/reference/interest_rate_swap'
-
 LEI_SCHEME = "http://www.fpml.org/coding-scheme/external/iso17442"
 SWAPSWIRE_TID = "http://www.swapswire.com/spec/2001/trade-id-1-0"
 SWAPSWIRE_MA = "http://www.swapswire.com/spec/2001/master-agreement-type-1-0"
@@ -42,6 +38,8 @@ PARTY_B = PartyInput(key="partyB", lei="529900CPTY57S5UCBB52",
                      lei_scheme=LEI_SCHEME, id_type="LEI",
                      name='SELL SECURITIES CO LTD ("Counterparty")')
 
+
+# ── single-currency fixtures (Phase 3a) ───────────────────────────────────────
 
 def _fixedfloat():
     return IRSTradeInput(
@@ -223,7 +221,7 @@ def _basis():
 
 
 def _basis_ois():
-    BC = "primaryBusinessCenters"   # dangling reference, as in the source file
+    BC = "primaryBusinessCenters"
     return IRSTradeInput(
         trade_date="2021-08-18", trade_id="BankA1234",
         isda_taxonomy="InterestRate_IRSwap_Basis_OIS",
@@ -291,23 +289,246 @@ def _basis_ois():
         ])
 
 
+# ── cross-currency fixtures (Phase 3b) ────────────────────────────────────────
+
+def _xccy_fixedfixed():
+    return IRSTradeInput(
+        trade_date="2006-01-09", trade_id="UITD7895394",
+        isda_taxonomy="InterestRate_CrossCurrency_FixedFixed",
+        parties=[
+            PartyInput(key="party1", lei="54930084UKLVMY22DS16",
+                       lei_scheme=LEI_SCHEME, id_type="LEI", name="Party A"),
+            PartyInput(key="party2", lei="48750084UKLVTR22DS78",
+                       lei_scheme=LEI_SCHEME, id_type="LEI", name="Party B"),
+        ],
+        party1_key="party2", party2_key="party1",
+        trade_identifiers=[TradeIdentifierInput(
+            issuer_lei="54930084UKLVMY22DS16",
+            issuer_scheme=LEI_SCHEME,
+            id_scheme="http://www.fpml.org/coding-scheme/external/uti",
+            id_value="UITD7895394",
+            identifier_type="UniqueTransactionIdentifier")],
+        legs=[
+            LegInput(payer="Party1", receiver="Party2", leg_type="fixed",
+                     notional_amount=1000000000, notional_currency="JPY",
+                     fixed_rate=0.001, day_count_fraction="ACT/365.FIXED",
+                     cpd_key="fixedCalcPeriodDatesJPY",
+                     effective_date="2006-01-11", effective_date_bdc="NONE",
+                     termination_date="2011-01-11", termination_date_bdc="MODFOLLOWING",
+                     calc_period_bdc="MODFOLLOWING",
+                     calc_period_multiplier=6, calc_period="M", roll_convention="11",
+                     payment_freq_multiplier=6, payment_freq_period="M",
+                     payment_bdc="MODFOLLOWING",
+                     principal_initial=True, principal_final=True,
+                     principal_intermediate=True),
+            LegInput(payer="Party2", receiver="Party1", leg_type="fixed",
+                     notional_amount=100000000, notional_currency="USD",
+                     fixed_rate=0.02, day_count_fraction="ACT/365.FIXED",
+                     cpd_key="fixedCalcPeriodDatesUSD",
+                     effective_date="2006-01-11", effective_date_bdc="NONE",
+                     termination_date="2011-01-11", termination_date_bdc="MODFOLLOWING",
+                     calc_period_bdc="MODFOLLOWING",
+                     calc_period_multiplier=6, calc_period="M", roll_convention="11",
+                     payment_freq_multiplier=6, payment_freq_period="M",
+                     payment_bdc="MODFOLLOWING",
+                     principal_initial=True, principal_final=True,
+                     principal_intermediate=True),
+        ])
+
+
+def _xccy_fixedfloat():
+    return IRSTradeInput(
+        trade_date="2001-01-09", trade_id="123",
+        isda_taxonomy="InterestRate_CrossCurrency_FixedFloat",
+        parties=[
+            PartyInput(key="party1", lei="Party A",
+                       lei_scheme="http://www.fpml.org/coding-scheme/dummy-party-id"),
+            PartyInput(key="party2", lei="Party B",
+                       lei_scheme="http://www.fpml.org/coding-scheme/dummy-party-id"),
+        ],
+        party1_key="party2", party2_key="party1",
+        trade_identifiers=[
+            TradeIdentifierInput(issuer_key="party1",
+                                 id_scheme="http://www.partyA.com/trade-id",
+                                 id_value="123"),
+            TradeIdentifierInput(issuer_key="party2",
+                                 id_scheme="http://www.partyB.com/trade-id",
+                                 id_value="123"),
+        ],
+        legs=[
+            LegInput(payer="Party1", receiver="Party2", leg_type="fixed",
+                     notional_amount=1000000000, notional_currency="JPY",
+                     fixed_rate=0.01, day_count_fraction="ACT/365.FIXED",
+                     cpd_key="fixedCalcPeriodDates",
+                     effective_date="2006-01-11", effective_date_bdc="NONE",
+                     termination_date="2011-01-11", termination_date_bdc="MODFOLLOWING",
+                     calc_period_bdc="MODFOLLOWING",
+                     calc_period_multiplier=6, calc_period="M", roll_convention="11",
+                     payment_freq_multiplier=6, payment_freq_period="M",
+                     payment_bdc="MODFOLLOWING",
+                     principal_initial=True, principal_final=True,
+                     principal_intermediate=True),
+            LegInput(payer="Party2", receiver="Party1", leg_type="floating",
+                     notional_amount=None, notional_currency="USD",
+                     floating_index="USD-LIBOR-BBA",
+                     index_tenor_multiplier=3, index_tenor_period="M",
+                     day_count_fraction="ACT/360",
+                     cpd_key="floatingCalcPeriodDates",
+                     payment_dates_key="floatingPaymentDates",
+                     reset_dates_key="floatingResetDates",
+                     effective_date="2006-01-11", effective_date_bdc="NONE",
+                     termination_date="2011-01-11", termination_date_bdc="MODFOLLOWING",
+                     calc_period_bdc="MODFOLLOWING",
+                     calc_period_multiplier=3, calc_period="M", roll_convention="11",
+                     payment_freq_multiplier=3, payment_freq_period="M",
+                     payment_bdc="MODFOLLOWING",
+                     reset_relative_to="CalculationPeriodStartDate",
+                     fixing_offset_multiplier=-2, fixing_offset_period="D",
+                     fixing_offset_day_type="Business", fixing_bdc="NONE",
+                     reset_freq_multiplier=3, reset_freq_period="M",
+                     reset_bdc="MODFOLLOWING",
+                     principal_initial=True, principal_final=True,
+                     principal_intermediate=True,
+                     quantity_reference_key="notionalScheduleJPY",
+                     fx_linked_notional=FXLinkedNotionalInput(
+                         varying_notional_currency="USD",
+                         fixing_offset_multiplier=-2, fixing_offset_period="D",
+                         fixing_offset_day_type="Business", fixing_offset_bdc="NONE",
+                         date_relative_to_key="floatingResetDates",
+                         source_provider="BankOfJapan",
+                         fixing_time="17:00:00", fixing_business_center="JPTO",
+                         interim_multiplier=0, interim_period="D",
+                         interim_bdc="NONE",
+                         interim_date_relative_to_key="floatingPaymentDates",
+                     )),
+        ])
+
+
+def _xccy_basis():
+    return IRSTradeInput(
+        trade_date="2018-03-19", trade_id="DRTY123456",
+        isda_taxonomy="InterestRate_CrossCurrency_Basis",
+        primary_asset_class="InterestRate",
+        additional_taxonomies=[
+            TaxonomyInput(source="CFI", value="SRAXCC",
+                          value_scheme="http://www.fpml.org/coding-scheme/external/product-classification/iso10962"),
+            TaxonomyInput(source="EMIR", value="SW",
+                          value_scheme="http://www.dtcc.com/coding-scheme/external/product-classification/emir-contract-type"),
+        ],
+        product_id_value="InterestRate:CrossCurrency:Basis",
+        product_id_scheme="http://www.dtcc.com/coding-scheme/external/GTR-Product-Id",
+        product_id_source="Other",
+        tradedate_key="tradeDate",
+        parties=[
+            PartyInput(key="party1", lei="54930084UKLVMY22DS16",
+                       lei_scheme=LEI_SCHEME, id_type="LEI", name="Party A"),
+            PartyInput(key="party2", lei="48750084UKLVTR22DS78",
+                       lei_scheme=LEI_SCHEME, id_type="LEI", name="Party B"),
+        ],
+        party1_key="party1", party2_key="party2",
+        trade_identifiers=[
+            TradeIdentifierInput(
+                issuer_lei="1031234567",
+                issuer_scheme="http://www.fpml.org/coding-scheme/external/nsa/cftc",
+                id_scheme="http://www.fpml.org/coding-scheme/external/usi",
+                id_value="DRTY123456",
+                identifier_type="UniqueSwapIdentifier"),
+            TradeIdentifierInput(
+                issuer_lei="54930084UKLVMY22DS16",
+                issuer_scheme=LEI_SCHEME,
+                id_scheme="http://www.fpml.org/coding-scheme/external/uti",
+                id_value="UITD7895394",
+                identifier_type="UniqueTransactionIdentifier"),
+        ],
+        legs=[
+            LegInput(payer="Party1", receiver="Party2", leg_type="floating",
+                     notional_amount=2034.95, notional_currency="USD",
+                     floating_index="USD-LIBOR-BBA",
+                     index_tenor_multiplier=3, index_tenor_period="M",
+                     day_count_fraction="ACT/360",
+                     cpd_key="d0e5285", reset_dates_key="d0e5632",
+                     effective_date="2018-03-21", effective_date_bdc="MODFOLLOWING",
+                     termination_date="2023-03-21", termination_date_bdc="MODFOLLOWING",
+                     termination_date_adjusted="2023-03-21",
+                     calc_period_bdc="MODFOLLOWING",
+                     calc_period_multiplier=3, calc_period="M", roll_convention="21",
+                     payment_freq_multiplier=3, payment_freq_period="M",
+                     first_payment_date="2018-06-21",
+                     payment_bdc="MODFOLLOWING",
+                     reset_relative_to="CalculationPeriodStartDate",
+                     fixing_offset_multiplier=-2, fixing_offset_period="D",
+                     fixing_offset_day_type="Business", fixing_bdc="NONE",
+                     reset_freq_multiplier=3, reset_freq_period="M",
+                     reset_bdc="MODFOLLOWING",
+                     compounding_method="None",
+                     cashflow_matches_parameters=False,
+                     principal_initial=False, principal_final=False,
+                     principal_intermediate=True,
+                     settlement_currency="USD",
+                     quantity_reference_key="fixed_notional_schedule",
+                     fx_linked_notional=FXLinkedNotionalInput(
+                         varying_notional_currency="USD",
+                         fixing_offset_multiplier=2, fixing_offset_period="D",
+                         fixing_offset_day_type="Business",
+                         fixing_offset_bdc="MODFOLLOWING",
+                         date_relative_to_key="tradeDate",
+                         source_provider="Telerate",
+                         source_page="WM Company LDN 11am Mid",
+                         source_page_heading="USD/EUR",
+                         fixing_time="11:00:00", fixing_business_center="GBLO",
+                         interim_multiplier=2, interim_period="D",
+                         interim_day_type="Business", interim_bdc="MODFOLLOWING",
+                         interim_date_relative_to_key="tradeDate",
+                     )),
+            LegInput(payer="Party2", receiver="Party1", leg_type="floating",
+                     notional_amount=1650, notional_currency="EUR",
+                     floating_index="EUR-EURIBOR-Telerate",
+                     index_tenor_multiplier=3, index_tenor_period="M",
+                     spread=-0.0045,
+                     day_count_fraction="ACT/360",
+                     cpd_key="d0e6004", reset_dates_key="d0e6350",
+                     effective_date="2018-03-21", effective_date_bdc="MODFOLLOWING",
+                     termination_date="2023-03-21", termination_date_bdc="MODFOLLOWING",
+                     termination_date_adjusted="2023-03-21",
+                     calc_period_bdc="MODFOLLOWING",
+                     calc_period_multiplier=3, calc_period="M", roll_convention="21",
+                     payment_freq_multiplier=3, payment_freq_period="M",
+                     first_payment_date="2018-06-21",
+                     payment_bdc="MODFOLLOWING",
+                     reset_relative_to="CalculationPeriodStartDate",
+                     fixing_offset_multiplier=-2, fixing_offset_period="D",
+                     fixing_offset_day_type="Business", fixing_bdc="NONE",
+                     reset_freq_multiplier=3, reset_freq_period="M",
+                     reset_bdc="MODFOLLOWING",
+                     compounding_method="None",
+                     cashflow_matches_parameters=False,
+                     principal_initial=True, principal_final=True,
+                     principal_intermediate=True,
+                     settlement_currency="EUR",
+                     principal_schedule=PrincipalPaymentScheduleInput(
+                         initial_date="2018-03-21",
+                         initial_payer="Party1", initial_receiver="Party2",
+                         initial_amount=1650, initial_currency="EUR",
+                         final_date="2023-03-21",
+                         final_payer="Party2", final_receiver="Party1",
+                         final_amount=1650, final_currency="EUR",
+                     )),
+        ])
+
+
 CASES = {
-    "fixedfloat": (_fixedfloat, f"{REF_DIR}/swaps/irs-fixedfloat.json"),
-    "ois": (_ois, f"{REF_DIR}/swaps/irs-fixedfloat-ois.json"),
-    "zerocoupon": (_zerocoupon, f"{REF_DIR}/swaps/irs-fixedfloat-zerocoupon.json"),
-    "basis": (_basis, f"{REF_DIR}/cross_currency/irs-basis.json"),
-    "basis-ois": (_basis_ois, f"{REF_DIR}/cross_currency/irs-basis-ois.json"),
+    "fixedfloat":     (_fixedfloat,     f"{REF_DIR}/swaps/irs-fixedfloat.json"),
+    "ois":            (_ois,             f"{REF_DIR}/swaps/irs-fixedfloat-ois.json"),
+    "zerocoupon":     (_zerocoupon,      f"{REF_DIR}/swaps/irs-fixedfloat-zerocoupon.json"),
+    "basis":          (_basis,           f"{REF_DIR}/cross_currency/irs-basis.json"),
+    "basis-ois":      (_basis_ois,       f"{REF_DIR}/cross_currency/irs-basis-ois.json"),
+    "xccy-fixedfixed":(_xccy_fixedfixed, f"{REF_DIR}/cross_currency/irs-xccy-fixedfixed.json"),
+    "xccy-fixedfloat":(_xccy_fixedfloat, f"{REF_DIR}/cross_currency/irs-xccy-fixedfloat.json"),
+    "xccy-basis":     (_xccy_basis,      f"{REF_DIR}/cross_currency/irs-xccy-basis.json"),
 }
 
 
 # ── normalization (identity-aware) ────────────────────────────────────────────
-# Canonicalize each key id by the JSON PATH of its first reference. Two
-# structurally identical docs get the same canonical names regardless of the
-# depth-first order in which their key DEFINITIONS happen to be encountered
-# (e.g. our builder and the reference emit `party[]` at different positions).
-# Wrong ref targets still surface: the failure moves from the ref number
-# itself to the downstream sibling values at the target, which is semantically
-# the right place for it.
 
 def _walk(node, path, first_ref):
     if isinstance(node, dict):
@@ -333,7 +554,6 @@ def _apply(node, mapping):
             if k in ("@key:scoped", "@key:external"):
                 if (k, v) in mapping:
                     out[k] = mapping[(k, v)]
-                # unreferenced defs dropped (cosmetic)
             elif k == "@ref:scoped":
                 out[k] = mapping.get(("@key:scoped", v), f"UNRESOLVED:{v}")
             elif k == "@ref:external":
@@ -358,8 +578,6 @@ def normalize(doc):
         prefix = "S" if kind == "@key:scoped" else "E"
         mapping[(kind, ident)] = f"{prefix}{counters[kind]}"
     result = _apply(copy.deepcopy(doc), mapping)
-    # Sort party[] by first partyId identifier value so positional order
-    # (which is semantically meaningless in CDM) doesn't cause false diffs.
     parties = result.get('trade', {}).get('party', [])
     if parties:
         def _party_sort_key(p):
@@ -404,7 +622,7 @@ def run_case(name, show=25):
     diffs = []
     diff(normalize(ours_raw), normalize(ref_raw), "", diffs)
     status = "EXACT MATCH" if not diffs else f"{len(diffs)} diffs"
-    print(f"{name:12s} {status}   (output: {out_path})")
+    print(f"{name:18s} {status}   (output: {out_path})")
     for kind, path, a, b in diffs[:show]:
         print(f"    [{kind}] {path}")
         if a is not None:

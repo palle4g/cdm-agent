@@ -1,10 +1,51 @@
 """
 v2/src/schemas/interest_rate_swap.py
 Input schema for Interest Rate Swap trades (plain-dict builder pipeline).
-Covers: single-currency Fixed/Float, OIS, Zero-Coupon, Basis swaps.
+Covers: single-currency Fixed/Float, OIS, Zero-Coupon, Basis (Phase 3a)
+        and cross-currency Fixed/Fixed, Fixed/Float, Basis (Phase 3b).
 """
 from dataclasses import dataclass, field
 from typing import Optional, List
+
+
+@dataclass
+class FXLinkedNotionalInput:
+    """FX-linked notional schedule for cross-currency legs."""
+    varying_notional_currency: str
+    # fixing dates relative to a named external key (e.g. "floatingResetDates", "tradeDate")
+    fixing_offset_multiplier: int
+    fixing_offset_period: str
+    fixing_offset_day_type: Optional[str] = None
+    fixing_offset_bdc: str = "NONE"
+    date_relative_to_key: str = ""        # @ref:external target
+    # FX rate source
+    source_provider: str = ""             # e.g. "BankOfJapan", "Telerate"
+    source_page: Optional[str] = None     # e.g. "WM Company LDN 11am Mid"
+    source_page_heading: Optional[str] = None  # e.g. "USD/EUR"
+    # fixing time
+    fixing_time: str = ""                 # "17:00:00"
+    fixing_business_center: str = ""      # "JPTO", "GBLO"
+    # interim exchange payment dates
+    interim_multiplier: int = 0
+    interim_period: str = "D"
+    interim_day_type: Optional[str] = None
+    interim_bdc: str = "NONE"
+    interim_date_relative_to_key: str = ""  # @ref:external target
+
+
+@dataclass
+class PrincipalPaymentScheduleInput:
+    """Initial and final principal exchange amounts (xccy-basis leg 2 style)."""
+    initial_date: Optional[str] = None        # adjustedDate
+    initial_payer: Optional[str] = None       # "Party1" / "Party2"
+    initial_receiver: Optional[str] = None
+    initial_amount: Optional[float] = None
+    initial_currency: Optional[str] = None
+    final_date: Optional[str] = None          # adjustedDate
+    final_payer: Optional[str] = None
+    final_receiver: Optional[str] = None
+    final_amount: Optional[float] = None
+    final_currency: Optional[str] = None
 
 
 @dataclass
@@ -12,26 +53,27 @@ class LegInput:
     payer: str
     receiver: str
     leg_type: str                            # "fixed" or "floating"
-    notional_amount: float
+    notional_amount: Optional[float]         # None for FX-linked legs
     notional_currency: str
     fixed_rate: Optional[float] = None
     floating_index: Optional[str] = None
-    floating_index_is_named: bool = True     # False: identifier only, no floatingRateIndex value (e.g. GOFO)
+    floating_index_is_named: bool = True     # False: identifier only, no floatingRateIndex value
     index_tenor_multiplier: Optional[int] = None
     index_tenor_period: Optional[str] = None
     spread: Optional[float] = None
     day_count_fraction: str = "ACT/360"
     effective_date: str = ""
     termination_date: str = ""
+    termination_date_adjusted: Optional[str] = None  # adjustedDate alongside unadjustedDate
     first_period_start_date: Optional[str] = None
-    first_period_start_bdc: Optional[str] = None   # defaults to effective_date_bdc
+    first_period_start_bdc: Optional[str] = None
     calc_period_multiplier: int = 1
     calc_period: str = "M"
     roll_convention: str = "NONE"
     calc_period_bdc: str = "MODFOLLOWING"
     effective_date_bdc: str = "NONE"
     termination_date_bdc: str = "MODFOLLOWING"
-    # optional businessCenters references (external key, e.g. "primaryBusinessCenters")
+    # optional businessCenters references
     effective_date_bc_ref: Optional[str] = None
     termination_date_bc_ref: Optional[str] = None
     calc_period_bc_ref: Optional[str] = None
@@ -46,8 +88,8 @@ class LegInput:
     payment_offset_multiplier: Optional[int] = None
     payment_offset_period: Optional[str] = None
     payment_offset_day_type: Optional[str] = None
-    # reset block — emitted when reset_freq_multiplier is set (floating legs)
-    reset_relative_to: Optional[str] = None        # omitted from output when None
+    # reset block
+    reset_relative_to: Optional[str] = None
     fixing_offset_multiplier: Optional[int] = None
     fixing_offset_period: Optional[str] = None
     fixing_offset_day_type: Optional[str] = None
@@ -56,26 +98,47 @@ class LegInput:
     reset_freq_period: Optional[str] = None
     reset_bdc: Optional[str] = None
     compounding_method: Optional[str] = None
+    # cross-currency additions
+    cpd_key: Optional[str] = None           # named @key:external for calculationPeriodDates
+    payment_dates_key: Optional[str] = None # named @key:external for paymentDates
+    reset_dates_key: Optional[str] = None   # named @key:external for resetDates
+    principal_initial: bool = False
+    principal_final: bool = False
+    principal_intermediate: bool = False
+    principal_schedule: Optional[PrincipalPaymentScheduleInput] = None
+    settlement_currency: Optional[str] = None
+    cashflow_matches_parameters: Optional[bool] = None
+    fx_linked_notional: Optional[FXLinkedNotionalInput] = None
+    quantity_reference_key: Optional[str] = None  # dangling @ref:external
 
 
 @dataclass
 class PartyInput:
     key: str
-    lei: Optional[str] = None                # identifier value (LEI or internal id)
+    lei: Optional[str] = None
     lei_scheme: Optional[str] = None
-    id_type: Optional[str] = None            # e.g. "LEI"; omitted when None
+    id_type: Optional[str] = None
     name: Optional[str] = None
 
 
 @dataclass
 class TradeIdentifierInput:
-    issuer_key: Optional[str] = None
-    issuer_lei: Optional[str] = None
+    issuer_key: Optional[str] = None       # -> issuerReference (@ref:external)
+    issuer_lei: Optional[str] = None       # -> issuer (@data)
     issuer_scheme: Optional[str] = None
     id_scheme: str = ""
     id_value: str = ""
     id_version: Optional[int] = None
-    identifier_type: Optional[str] = None
+    identifier_type: Optional[str] = None  # e.g. "UniqueTransactionIdentifier"
+
+
+@dataclass
+class TaxonomyInput:
+    """Non-ISDA taxonomy entry (CFI, EMIR, primaryAssetClass)."""
+    source: Optional[str] = None           # "CFI", "EMIR", None for primaryAssetClass
+    value: Optional[str] = None            # taxonomy name value
+    value_scheme: Optional[str] = None     # scheme URI for the value
+    primary_asset_class: Optional[str] = None  # set instead of source+value
 
 
 @dataclass
@@ -88,21 +151,20 @@ class IRSTradeInput:
     trade_identifiers: List[TradeIdentifierInput] = field(default_factory=list)
     legs: List[LegInput] = field(default_factory=list)
     isda_taxonomy: Optional[str] = None
-    other_taxonomy: Optional[str] = None     # e.g. "InterestRate::VanillaSwap"
-    primary_asset_class: Optional[str] = None  # e.g. "Commodity" — emitted as first taxonomy entry
-    # product-level identifier (e.g. GTR product id)
+    other_taxonomy: Optional[str] = None
+    primary_asset_class: Optional[str] = None
+    additional_taxonomies: List[TaxonomyInput] = field(default_factory=list)
     product_id_value: Optional[str] = None
     product_id_scheme: Optional[str] = None
-    product_id_source: Optional[str] = None  # e.g. "Other"
+    product_id_source: Optional[str] = None
     calc_agent_key: Optional[str] = None
-    # contract details (legal documentation)
-    master_agreement_type: Optional[str] = None      # e.g. "ISDAMaster"
+    master_agreement_type: Optional[str] = None
     master_agreement_scheme: Optional[str] = None
     has_confirmation: bool = False
-    confirmation_definitions: Optional[str] = None   # e.g. "ISDA2006"
-    # upfront payment (zero-coupon)
+    confirmation_definitions: Optional[str] = None
     upfront_payment_amount: Optional[float] = None
     upfront_payment_currency: Optional[str] = None
     upfront_payment_date: Optional[str] = None
     upfront_payer_key: Optional[str] = None
     upfront_receiver_key: Optional[str] = None
+    tradedate_key: Optional[str] = None    # @key:external on tradeDate (xccy-basis)

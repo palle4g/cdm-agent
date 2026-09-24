@@ -3,21 +3,17 @@ v2/src/builders/cdm_builder.py
 
 Builds real ISDA CDM JSON for Interest Rate Swaps as PLAIN PYTHON DICTS,
 in exactly the shape of the FINXIS reference files
-(v2/data/reference/interest_rate_swap/). No finos imports — the reference
-files are the spec; correctness is checked by diffing against them
-(see v2/tests/compare_reference.py).
+(v2/data/reference/interest_rate_swap/). No finos imports.
 
-Why not finos.cdm Pydantic objects: finos-cdm 7.2-7.4 + rune-runtime 2.2.1
-cannot currently roundtrip this format (reference resolution, choice-type
-routing, and serializer bugs — see v2/experiments/finos_cdm_roundtrip/ and
-https://github.com/finos/rune-python-runtime/issues/37). Revisit as an
-optional validation pass when upstream fixes land.
+Scope:
+  Phase 3a: single-currency Fixed/Float, OIS, Zero-Coupon, Basis
+  Phase 3b: cross-currency Fixed/Fixed, Fixed/Float, Basis
 
-Scope: single-currency Fixed/Float, OIS, Zero-Coupon, Basis (Phase 3a).
-Cross-currency is Phase 3b.
+Correctness checked by v2/tests/compare_reference.py (all reference files).
 """
 from v2.src.schemas.interest_rate_swap import (
-    IRSTradeInput, LegInput, PartyInput, TradeIdentifierInput
+    IRSTradeInput, LegInput, PartyInput, TradeIdentifierInput,
+    FXLinkedNotionalInput, PrincipalPaymentScheduleInput, TaxonomyInput,
 )
 
 CDM_VERSION = "0.0.0.master-SNAPSHOT"
@@ -46,27 +42,32 @@ def _bdc(convention, bc_ref=None):
     return out
 
 
-def _adjustable_date(iso_date, bdc, bc_ref=None):
-    return {
-        "adjustableDate": {
-            "unadjustedDate": iso_date,
-            "dateAdjustments": _bdc(bdc, bc_ref),
-        }
+def _adjustable_date(iso_date, bdc, bc_ref=None, adjusted_date=None):
+    adj = {
+        "unadjustedDate": iso_date,
+        "dateAdjustments": _bdc(bdc, bc_ref),
     }
+    if adjusted_date:
+        adj["adjustedDate"] = _data(adjusted_date)
+    return {"adjustableDate": adj}
 
 
 def _currency_unit(currency):
     return {"currency": _data(currency)}
 
 
-# ── keyed objects (quantity / price / observable) ─────────────────────────────
+def _amount(value, currency):
+    return {"value": value, "unit": _currency_unit(currency)}
+
+
+# ── keyed objects ─────────────────────────────────────────────────────────────
 
 def _quantity(key, amount, currency):
-    return {
-        "@key:scoped": key,
-        "value": amount,
-        "unit": _currency_unit(currency),
-    }
+    q = {"@key:scoped": key}
+    if amount is not None:
+        q["value"] = amount
+    q["unit"] = _currency_unit(currency)
+    return q
 
 
 def _price(key, rate, currency, operator=None):
@@ -85,12 +86,7 @@ def _price(key, rate, currency, operator=None):
 def _observable(obs_key, index_key, leg: LegInput):
     fri = {
         "@type": "cdm.observable.asset.FloatingRateIndex",
-        "identifier": [
-            {
-                "identifier": _data(leg.floating_index),
-                "identifierType": "Other",
-            }
-        ],
+        "identifier": [{"identifier": _data(leg.floating_index), "identifierType": "Other"}],
         "assetType": "Other",
         "assetClass": "InterestRate",
     }
@@ -111,16 +107,87 @@ def _observable(obs_key, index_key, leg: LegInput):
     }
 
 
+# ── FX-linked notional ────────────────────────────────────────────────────────
+
+def _fx_linked_notional(fx: FXLinkedNotionalInput):
+    fixing = {
+        "periodMultiplier": fx.fixing_offset_multiplier,
+        "period": fx.fixing_offset_period,
+    }
+    if fx.fixing_offset_day_type:
+        fixing["dayType"] = fx.fixing_offset_day_type
+    fixing["businessDayConvention"] = fx.fixing_offset_bdc
+    fixing["dateRelativeTo"] = {"@ref:external": fx.date_relative_to_key}
+
+    source = {"sourceProvider": _data(fx.source_provider)}
+    if fx.source_page:
+        source["sourcePage"] = _data(fx.source_page)
+    if fx.source_page_heading:
+        source["sourcePageHeading"] = fx.source_page_heading
+
+    interim = {
+        "periodMultiplier": fx.interim_multiplier,
+        "period": fx.interim_period,
+    }
+    if fx.interim_day_type:
+        interim["dayType"] = fx.interim_day_type
+    interim["businessDayConvention"] = fx.interim_bdc
+    interim["dateRelativeTo"] = {"@ref:external": fx.interim_date_relative_to_key}
+
+    return {
+        "fxLinkedNotionalSchedule": {
+            "varyingNotionalCurrency": _data(fx.varying_notional_currency),
+            "varyingNotionalFixingDates": fixing,
+            "fxSpotRateSource": {"primarySource": source},
+            "fixingTime": {
+                "hourMinuteTime": fx.fixing_time,
+                "businessCenter": _data(fx.fixing_business_center),
+            },
+            "varyingNotionalInterimExchangePaymentDates": interim,
+        }
+    }
+
+
+# ── principalPayment block ────────────────────────────────────────────────────
+
+def _principal_payment(leg: LegInput):
+    pp = {
+        "initialPayment": leg.principal_initial,
+        "finalPayment": leg.principal_final,
+        "intermediatePayment": leg.principal_intermediate,
+    }
+    if leg.principal_schedule:
+        ps = leg.principal_schedule
+        schedule = {}
+        if ps.initial_date is not None:
+            schedule["initialPrincipalPayment"] = {
+                "principalPaymentDate": {"adjustedDate": _data(ps.initial_date)},
+                "payerReceiver": {"payer": ps.initial_payer, "receiver": ps.initial_receiver},
+                "principalAmount": _amount(ps.initial_amount, ps.initial_currency),
+            }
+        if ps.final_date is not None:
+            schedule["finalPrincipalPayment"] = {
+                "principalPaymentDate": {"adjustedDate": _data(ps.final_date)},
+                "payerReceiver": {"payer": ps.final_payer, "receiver": ps.final_receiver},
+                "principalAmount": _amount(ps.final_amount, ps.final_currency),
+            }
+        if schedule:
+            pp["principalPaymentSchedule"] = schedule
+    return pp
+
+
 # ── payout-leg blocks ─────────────────────────────────────────────────────────
 
-def _calculation_period_dates(leg: LegInput, key):
+def _calculation_period_dates(leg: LegInput, default_key: str):
+    key = leg.cpd_key or default_key
     cpd = {
         "@key:external": key,
         "effectiveDate": _adjustable_date(
             leg.effective_date, leg.effective_date_bdc, leg.effective_date_bc_ref
         ),
         "terminationDate": _adjustable_date(
-            leg.termination_date, leg.termination_date_bdc, leg.termination_date_bc_ref
+            leg.termination_date, leg.termination_date_bdc,
+            leg.termination_date_bc_ref, leg.termination_date_adjusted
         ),
         "calculationPeriodDatesAdjustments": _bdc(leg.calc_period_bdc, leg.calc_period_bc_ref),
     }
@@ -137,12 +204,14 @@ def _calculation_period_dates(leg: LegInput, key):
     return cpd
 
 
-def _payment_dates(leg: LegInput):
-    pd = {
-        "paymentFrequency": {
-            "periodMultiplier": leg.payment_freq_multiplier,
-            "period": leg.payment_freq_period,
-        }
+def _payment_dates(leg: LegInput, leg_no: int):
+    key = leg.payment_dates_key
+    pd = {}
+    if key:
+        pd["@key:external"] = key
+    pd["paymentFrequency"] = {
+        "periodMultiplier": leg.payment_freq_multiplier,
+        "period": leg.payment_freq_period,
     }
     if leg.first_payment_date:
         pd["firstPaymentDate"] = leg.first_payment_date
@@ -159,14 +228,14 @@ def _payment_dates(leg: LegInput):
     return pd
 
 
-def _reset_dates(leg: LegInput, calc_key, reset_key):
+def _reset_dates(leg: LegInput, calc_key: str):
+    reset_key = leg.reset_dates_key or f"resetDates-leg{calc_key}"
     rd = {
         "@key:external": reset_key,
         "calculationPeriodDatesReference": {"@ref:external": calc_key},
     }
     if leg.reset_relative_to:
         rd["resetRelativeTo"] = leg.reset_relative_to
-
     fixing = {
         "periodMultiplier": leg.fixing_offset_multiplier,
         "period": leg.fixing_offset_period,
@@ -179,7 +248,6 @@ def _reset_dates(leg: LegInput, calc_key, reset_key):
         fixing["businessCentersReference"] = {"@ref:external": leg.fixing_bc_ref}
     fixing["dateRelativeTo"] = {"@ref:external": reset_key}
     rd["fixingDates"] = fixing
-
     rd["resetFrequency"] = {
         "periodMultiplier": leg.reset_freq_multiplier,
         "period": leg.reset_freq_period,
@@ -189,19 +257,31 @@ def _reset_dates(leg: LegInput, calc_key, reset_key):
 
 
 def _build_leg(leg: LegInput, leg_no: int, counters: dict):
-    """
-    Returns (payout_dict, trade_lot_price_quantity_entry).
-    counters tracks price-N / InterestRateIndex-N / observable-N numbering
-    by order of first use, matching the reference files.
-    """
     qty_key = f"quantity-{leg_no}"
+    default_cpd_key = f"calculationPeriodDates-leg{leg_no}"
 
     payout = {
         "@type": "cdm.product.asset.InterestRatePayout",
         "payerReceiver": {"payer": leg.payer, "receiver": leg.receiver},
-        "priceQuantity": {"quantitySchedule": {"@ref:scoped": qty_key}},
     }
 
+    # priceQuantity block
+    pq_ref = {"quantitySchedule": {"@ref:scoped": qty_key}}
+    if leg.quantity_reference_key:
+        pq_ref["quantityReference"] = {"@ref:external": leg.quantity_reference_key}
+    if leg.fx_linked_notional:
+        pq_ref["quantityMultiplier"] = _fx_linked_notional(leg.fx_linked_notional)
+    payout["priceQuantity"] = pq_ref
+
+    # principalPayment
+    if leg.principal_initial or leg.principal_final or leg.principal_intermediate:
+        payout["principalPayment"] = _principal_payment(leg)
+
+    # settlementTerms
+    if leg.settlement_currency:
+        payout["settlementTerms"] = {"settlementCurrency": _data(leg.settlement_currency)}
+
+    # rateSpecification + tradeLot entry
     if leg.leg_type == "fixed":
         counters["price"] += 1
         price_key = f"price-{counters['price']}"
@@ -239,16 +319,20 @@ def _build_leg(leg: LegInput, leg_no: int, counters: dict):
 
     payout["dayCountFraction"] = _data(leg.day_count_fraction)
 
-    calc_key = f"calculationPeriodDates-leg{leg_no}"
-    payout["calculationPeriodDates"] = _calculation_period_dates(leg, calc_key)
-    payout["paymentDates"] = _payment_dates(leg)
+    cpd_key = leg.cpd_key or default_cpd_key
+    payout["calculationPeriodDates"] = _calculation_period_dates(leg, default_cpd_key)
+    payout["paymentDates"] = _payment_dates(leg, leg_no)
 
-    if leg.leg_type == "floating" and leg.reset_freq_multiplier is not None:
-        reset_key = f"resetDates-leg{leg_no}"
-        payout["resetDates"] = _reset_dates(leg, calc_key, reset_key)
+    if leg.reset_freq_multiplier is not None:
+        payout["resetDates"] = _reset_dates(leg, cpd_key)
 
     if leg.compounding_method:
         payout["compoundingMethod"] = leg.compounding_method
+
+    if leg.cashflow_matches_parameters is not None:
+        payout["cashflowRepresentation"] = {
+            "cashflowsMatchParameters": leg.cashflow_matches_parameters
+        }
 
     return payout, pq_entry
 
@@ -307,20 +391,16 @@ def _contract_details(input_data: IRSTradeInput):
     return {"documentation": docs} if docs else None
 
 
-# ── main entry point ──────────────────────────────────────────────────────────
-
-def build_irs_trade_state(input_data: IRSTradeInput) -> dict:
-    """Build a real ISDA CDM TradeState dict in reference-file shape."""
-    counters = {"price": 0, "index": 0, "observable": 0}
-    payouts, pq_entries = [], []
-    for i, leg in enumerate(input_data.legs, start=1):
-        payout, pq = _build_leg(leg, i, counters)
-        payouts.append(payout)
-        pq_entries.append(pq)
-
+def _build_taxonomy(input_data: IRSTradeInput):
     taxonomy = []
     if input_data.primary_asset_class:
         taxonomy.append({"primaryAssetClass": _data(input_data.primary_asset_class)})
+    for t in input_data.additional_taxonomies:
+        if t.primary_asset_class:
+            taxonomy.append({"primaryAssetClass": _data(t.primary_asset_class)})
+        else:
+            entry = {"source": t.source, "value": {"name": _scheme_data(t.value_scheme, t.value)}}
+            taxonomy.append(entry)
     if input_data.other_taxonomy:
         taxonomy.append({
             "source": "Other",
@@ -332,7 +412,21 @@ def build_irs_trade_state(input_data: IRSTradeInput) -> dict:
             "value": {"name": _data(input_data.isda_taxonomy)},
             "calculated": True,
         })
+    return taxonomy
 
+
+# ── main entry point ──────────────────────────────────────────────────────────
+
+def build_irs_trade_state(input_data: IRSTradeInput) -> dict:
+    """Build a real ISDA CDM TradeState dict in reference-file shape."""
+    counters = {"price": 0, "index": 0, "observable": 0}
+    payouts, pq_entries = [], []
+    for i, leg in enumerate(input_data.legs, start=1):
+        payout, pq = _build_leg(leg, i, counters)
+        payouts.append(payout)
+        pq_entries.append(pq)
+
+    taxonomy = _build_taxonomy(input_data)
     economic_terms = {"payout": payouts}
     if input_data.calc_agent_key:
         economic_terms["calculationAgent"] = {
@@ -364,7 +458,14 @@ def build_irs_trade_state(input_data: IRSTradeInput) -> dict:
             "partyReference": [{"@ref:external": input_data.calc_agent_key}],
         }]
     trade["tradeIdentifier"] = [_trade_identifier(t) for t in input_data.trade_identifiers]
-    trade["tradeDate"] = _data(input_data.trade_date)
+
+    # tradeDate — may carry a @key:external (xccy-basis references it in FX-linked notional)
+    trade_date_block = {}
+    if input_data.tradedate_key:
+        trade_date_block["@key:external"] = input_data.tradedate_key
+    trade_date_block["@data"] = input_data.trade_date
+    trade["tradeDate"] = trade_date_block
+
     trade["party"] = [_party(p) for p in input_data.parties]
 
     contract_details = _contract_details(input_data)
