@@ -33,7 +33,6 @@ from v2.src.schemas.interest_rate_swap import (
 
 load_dotenv(".env")
 
-DEFAULT_MODEL = "claude-opus-4-6"
 MAX_TOKENS = 8000
 
 
@@ -120,8 +119,11 @@ that field (do not guess a default).
      IRS fixed/float zero    -> "InterestRate_IRSwap_FixedFloat_ZeroCoupon"
      IRS basis (float/float) -> "InterestRate_IRSwap_Basis"
      IRS basis OIS           -> "InterestRate_IRSwap_Basis_OIS"
+     Cross-currency fixed/fixed  -> "InterestRate_CrossCurrency_FixedFixed"
+     Cross-currency fixed/float  -> "InterestRate_CrossCurrency_FixedFloat"
+     Cross-currency basis        -> "InterestRate_CrossCurrency_Basis"
    Set isda_taxonomy to this value. It is NOT optional — every IRS trade
-   has one.
+   has one. A trade with two different leg currencies is cross-currency.
 
 3. LEG TYPE DISCRIMINATION. A leg is "fixed" if and only if a fixed rate
    value is given for it (e.g. RATE=0.20 PCT, fixed_rate_pct=3.537,
@@ -219,6 +221,12 @@ Party identifiers
       http://www.fpml.org/coding-scheme/dummy-party-id
       Do NOT set id_type.
 
+Party name labels: when the record lists a party under a short label
+  such as "Party A" / "Party B" (even as a table row heading rather than
+  prose, e.g. "Party A: LEI 5493...") treat that label as the party's name
+  — set PartyInput.name to it. Do not skip a name just because it appears
+  as a heading rather than a full legal entity name.
+
 Party1/Party2 role assignment
   The party1_key and party2_key fields identify which party plays which
   counterparty role. Read them from the input record:
@@ -243,6 +251,24 @@ Trade identifiers
       party1/partyA ref -> issuer_key=party1, id_scheme=http://www.bankB.com/swaps/com-trade-id
       party2/partyB ref -> issuer_key=party2, id_scheme=http://www.bankA.com/swaps/com-trade-id
   - issuer_key is the party key that issued the identifier.
+
+Identifier type conversion: when the record names a specific identifier
+  type in prose (e.g. "Unique Swap Identifier", "Unique Transaction ID",
+  "Unique Product Identifier"), convert it to PascalCase with no spaces
+  for identifier_type:
+    "Unique Swap Identifier" / "USI"  -> "UniqueSwapIdentifier"
+    "Unique Transaction ID" / "UTI"   -> "UniqueTransactionIdentifier"
+  Always set identifier_type when the record names the identifier's type,
+  even informally or abbreviated.
+
+Known regulatory identifier schemes:
+  USI (Unique Swap Identifier) scheme ->
+    http://www.fpml.org/coding-scheme/external/usi
+  CFTC NSA (National Swap Data Repository / NSA) issuer scheme ->
+    http://www.fpml.org/coding-scheme/external/nsa/cftc
+  These are specific FpML coding-scheme URIs — use them exactly as given
+  here; do not invent a different domain (e.g. a cftc.gov URL) even if the
+  record only describes the scheme in words ("CFTC NSA coding scheme").
 
 Master agreement / documentation
   - "ISDA Master" -> master_agreement_type = "ISDAMaster",
@@ -357,6 +383,113 @@ Amounts:
   Emit notional_amount as a plain number (no commas, no currency code
   inside the value). notional_currency is a 3-letter code (or "XAU").
 
+═══════════════════════════════════════════════════════════════════════════
+ CROSS-CURRENCY SWAPS — additional fields
+═══════════════════════════════════════════════════════════════════════════
+These fields apply ONLY to cross-currency trades (two different leg
+currencies). Do not set them for single-currency trades.
+
+Principal exchange (principal_initial / principal_final / principal_intermediate):
+  Cross-currency swaps exchange principal; single-currency swaps normally
+  do not. Read which exchanges occur:
+    "INITIAL,FINAL,INTERMEDIATE" / "Initial, Final, and Intermediate"
+      -> principal_initial=true, principal_final=true, principal_intermediate=true
+    "Intermediate only" -> only principal_intermediate=true
+  If the record gives actual exchange AMOUNTS and DATES for the initial and
+  final exchange (not just a yes/no), populate principal_schedule with:
+    initial_date, initial_payer, initial_receiver, initial_amount, initial_currency
+    final_date, final_payer, final_receiver, final_amount, final_currency
+  If only booleans are given (no amounts/dates), leave principal_schedule unset.
+
+Named date keys (cpd_key, payment_dates_key, reset_dates_key):
+  Only set these when the record shows one leg's dates are referenced by
+  another part of the trade (most commonly: an FX-linked notional on this
+  leg references this leg's own reset or payment dates "relative to the
+  leg's own reset dates" / "relative to the leg's own payment dates").
+  Use a short descriptive name (e.g. "floatingResetDates",
+  "floatingPaymentDates", "fixedCalcPeriodDatesJPY"). If nothing references
+  a leg's dates, leave these unset — the builder assigns positional keys.
+
+FX-linked notional (fx_linked_notional on a leg):
+  Set this when the record says a leg's notional is FX-linked, FX-reset,
+  mark-to-market, or "notional recalculated from an FX fixing" — i.e. there
+  is NO static notional amount for that leg. Populate:
+    varying_notional_currency: the currency the notional is expressed in
+    fixing_offset_multiplier/period/day_type/bdc: when the FX rate is fixed,
+      relative to a reference date (see date_relative_to_key)
+    date_relative_to_key: the named key (see above) of the date the FX
+      fixing is relative to — either this leg's own reset dates/payment
+      dates key, or "tradeDate" if relative to the trade date itself
+    source_provider: the FX rate source (e.g. "BankOfJapan", "Telerate")
+    source_page / source_page_heading: only if the record names a specific
+      quote page (e.g. "WM Company LDN 11am Mid", heading "USD/EUR")
+    fixing_time, fixing_business_center: the time and center the FX rate
+      is observed (e.g. "17:00:00", "JPTO")
+    interim_multiplier/period/day_type/bdc: offset for interim exchange
+      payment dates (often "0 days" — same as the reset/payment date)
+    interim_date_relative_to_key: same rule as date_relative_to_key, for
+      the interim exchange payment date
+  When a leg has fx_linked_notional set, notional_amount may still be
+  populated if the record gives a current/static notional value alongside
+  the FX-linked schedule (e.g. "current notional: USD 2,034.95, subject to
+  FX reset each period") — report BOTH in that case. Only leave
+  notional_amount as None if the record gives no value at all for that leg.
+
+  PAIRING RULE: whenever you set fx_linked_notional on a leg, you MUST also
+  set quantity_reference_key on that same leg (invent a short descriptive
+  key if the record doesn't literally name one, e.g. "notionalScheduleJPY").
+  The two fields always go together in the CDM shape — never set one
+  without the other.
+
+  OFFSET SIGN — do not confuse this with the periodic reset-fixing
+  convention above. fixing_offset_multiplier and interim_multiplier on an
+  FX-linked notional are a SEPARATE concept from a leg's own reset/fixing
+  offset, and are NOT assumed negative by default. Read the explicit
+  direction word in the record:
+    "before" / "prior to" / "preceding" the reference date -> negative
+    "after" / "following" the reference date               -> positive
+  If the record gives a lag with NO direction word at all, do not guess —
+  ask yourself whether the record says "before"/"after" anywhere nearby;
+  if truly silent on direction, prefer a positive value (the reference
+  date is usually the earliest point the fixing could occur relative to).
+
+quantity_reference_key:
+  Set this to a dangling external key name (invented, descriptive — e.g.
+  "notionalScheduleJPY", "fixed_notional_schedule") when the record
+  describes an FX-linked notional but does not literally name the
+  cross-reference key. This models the CDM quantityReference field, which
+  in real trades often points to a schedule maintained elsewhere.
+
+settlement_currency:
+  Set per-leg when the record specifies a settlement currency distinct
+  from the notional currency conversation (common in xccy basis swaps
+  with cash settlement terms).
+
+cashflow_matches_parameters:
+  Set to false when the record explicitly states cashflows do not match
+  the calculated parameters (a compliance/booking flag in complex xccy
+  trades). Omit entirely if not mentioned.
+
+tradedate_key:
+  Set IRSTradeInput.tradedate_key = "tradeDate" only when the record shows
+  an FX-linked notional referencing the trade date itself (date_relative_to_key
+  or interim_date_relative_to_key = "tradeDate"). Otherwise leave unset.
+
+additional_taxonomies:
+  Populate with TaxonomyInput entries when the record gives product
+  classification codes beyond the ISDA taxonomy:
+    CFI code (ISO 10962)            -> source="CFI", value=<code>,
+                                        value_scheme=http://www.fpml.org/coding-scheme/external/product-classification/iso10962
+    EMIR contract type              -> source="EMIR", value=<code>,
+                                        value_scheme=http://www.dtcc.com/coding-scheme/external/product-classification/emir-contract-type
+  primary_asset_class (e.g. "InterestRate") goes on IRSTradeInput directly,
+  not in additional_taxonomies.
+
+Trade identifiers with direct issuer LEI (no party cross-reference):
+  When a trade identifier's issuer is given as an LEI/scheme directly,
+  rather than a reference to a party already listed in parties[], use
+  issuer_lei + issuer_scheme on TradeIdentifierInput instead of issuer_key.
+
 CDM envelope constants (for reference only — set by the builder, not you):
   @model=cdm, @type=cdm.event.common.TradeState,
   @version=0.0.0.master-SNAPSHOT
@@ -404,13 +537,14 @@ def _coerce(ann, val):
 
 # ── public entry point ──────────────────────────────────────────────────────
 
-def extract_irs_trade(
+def extract_irs_trade_with_model(
     raw_text: str,
     fmt_hint: str,
+    model: str,
     *,
-    model: str = DEFAULT_MODEL,
     verbose: bool = False,
 ) -> IRSTradeInput:
+    """Extract a trade using the given model. Called by extractor_sonnet.py / extractor_opus.py."""
     client = anthropic.Anthropic()   # picks up ANTHROPIC_API_KEY from env
     user_msg = (
         f"Format hint: {fmt_hint}\n\n"
@@ -442,17 +576,3 @@ def extract_irs_trade(
 
 # ── CLI for a quick manual smoke test ───────────────────────────────────────
 
-if __name__ == "__main__":
-    import sys
-    if len(sys.argv) < 3:
-        print("usage: python -m v2.src.agent.extractor <fmt_hint> <path>")
-        raise SystemExit(2)
-    fmt_hint, path = sys.argv[1], sys.argv[2]
-    with open(path, encoding="utf-8") as f:
-        raw = f.read()
-    trade = extract_irs_trade(raw, fmt_hint, verbose=True)
-    print("\nParsed IRSTradeInput fields:")
-    for f in dataclasses.fields(trade):
-        v = getattr(trade, f.name)
-        show = v if not isinstance(v, list) else f"[{len(v)} items]"
-        print(f"  {f.name} = {show}")

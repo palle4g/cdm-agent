@@ -1,0 +1,49 @@
+{
+  "mode": "AGENT (sonnet)",
+  "summary": {
+    "pass": 0,
+    "fail": 2,
+    "error": 0,
+    "total": 2
+  },
+  "results": [
+    {
+      "case": "xccy-fixedfixed",
+      "status": "FAIL",
+      "diff_count": 2,
+      "diffs": [
+        {
+          "kind": "VALUE",
+          "path": "trade.party[0].@key:external",
+          "ours": "E2",
+          "ref": "E1"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.party[1].@key:external",
+          "ours": "E1",
+          "ref": "E2"
+        }
+      ]
+    },
+    {
+      "case": "xccy-basis",
+      "status": "FAIL",
+      "diff_count": 2,
+      "diffs": [
+        {
+          "kind": "VALUE",
+          "path": "trade.product.taxonomy[1].value.name.@scheme",
+          "ours": "http://www.iso.org/coding-scheme/iso10962",
+          "ref": "http://www.fpml.org/coding-scheme/external/product-classification/iso10962"
+        },
+        {
+          "kind": "VALUE",
+          "path": "trade.product.taxonomy[2].value.name.@scheme",
+          "ours": "http://www.dtcc.com/coding-scheme/external/emir/contract-type",
+          "ref": "http://www.dtcc.com/coding-scheme/external/product-classification/emir-contract-type"
+        }
+      ]
+    }
+  ]
+}

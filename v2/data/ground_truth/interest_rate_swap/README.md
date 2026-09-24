@@ -81,3 +81,66 @@ they were derived from the reference files' content, not from production
 systems. Realism of field vocabulary and layout is open for critique —
 corrections to the raw formats are welcome and cheap; the expected outputs
 are untouched FINXIS reference files and are not ours to edit.
+
+## Cross-currency additions (Phase 3b)
+
+```
+v2/data/ground_truth/interest_rate_swap/
+  xccy-fixedfixed/  input.txt    expected_cdm.json
+  xccy-fixedfloat/  input.json   expected_cdm.json
+  xccy-basis/       input.txt    expected_cdm.json
+```
+
+| case | input format style | reference file |
+|---|---|---|
+| xccy-fixedfixed | FIX-style tag=value trade capture dump | cross_currency/irs-xccy-fixedfixed.json |
+| xccy-fixedfloat | risk-system JSON export (FX-reset notional) | cross_currency/irs-xccy-fixedfloat.json |
+| xccy-basis | term sheet free text (most complex case) | cross_currency/irs-xccy-basis.json |
+
+### Additional mapping conventions for cross-currency trades
+
+| concept | raw vocabulary → CDM value |
+|---|---|
+| Principal exchange | "INITIAL,FINAL,INTERMEDIATE" → principal_initial/final/intermediate = true; "Intermediate only" → only intermediate |
+| Principal schedule (amounts given) | populate PrincipalPaymentScheduleInput with dates/payer/receiver/amount per exchange |
+| FX-linked / FX-reset notional | no static notional_amount; populate FXLinkedNotionalInput (varying currency, fixing lag, FX source, fixing time/center, interim exchange lag) |
+| Named date keys | only set cpd_key/payment_dates_key/reset_dates_key when the record shows cross-referencing (e.g. FX reset "relative to the leg's own reset dates") |
+| quantity_reference_key | invented descriptive key modeling CDM's quantityReference when FX-linked notional is present but no literal cross-reference key is named |
+| settlement_currency | per-leg, when record gives a distinct settlement currency |
+| cashflow_matches_parameters | boolean compliance flag, xccy-basis style records only |
+| tradedate_key | set to "tradeDate" only when FX-linked notional references the trade date itself |
+| additional_taxonomies | CFI code (ISO 10962 scheme) and EMIR contract type (DTCC scheme), when given beyond ISDA taxonomy |
+| Direct-issuer trade identifiers | when issuer is given as LEI/scheme directly (not a party cross-reference), use issuer_lei + issuer_scheme instead of issuer_key |
+
+xccy-basis is the hardest case in the full ground-truth set: it combines
+FX-linked notional, principal payment schedule with real amounts, settlement
+terms, cashflow representation, and 4-entry taxonomy — all in a free-text
+term sheet. It is expected to need the most careful extraction (and may
+require the Opus-tier model in the format-routing table, similar to the
+zerocoupon confirmation-letter case).
+
+### Known limitation: xccy-fixedfixed party/role ordering
+
+`irs-xccy-fixedfixed.json` assigns CDM counterparty roles (`Party1`/`Party2`)
+to the two parties in a way that inverts the "obvious" reading of the source
+party ordering (the party listed/labeled first in the data is CDM `Party2`,
+not `Party1`). This is a property of the FINXIS test fixture itself, not a
+real-world convention.
+
+Both Claude Sonnet 4.6 and Claude Opus 4.6 assign the intuitive (but
+incorrect, for this file) mapping even when the raw input explicitly states
+the correct, counter-intuitive assignment in a highlighted note. The result
+is a 2-diff mismatch confined to internal `@key:external` numbering — the
+trade's economics (notionals, rates, dates, principal exchange) are fully
+correct in both cases; only the party-key labeling artifact differs.
+
+Tested and confirmed on both models (2025-09-24); not pursued further given:
+- it reflects a quirk of this specific test fixture, not a representative
+  real-world pattern
+- it does not affect the correctness of any economically meaningful field
+- both models behave identically, indicating a systematic default rather
+  than a fixable prompt gap
+
+If this pattern turns out to matter for real production data, revisit with
+a stronger structural cue (e.g. reformatting the disambiguation note as a
+required field the model must echo back) rather than more prose guidance.

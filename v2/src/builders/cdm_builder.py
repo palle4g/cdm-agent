@@ -396,11 +396,8 @@ def _build_taxonomy(input_data: IRSTradeInput):
     if input_data.primary_asset_class:
         taxonomy.append({"primaryAssetClass": _data(input_data.primary_asset_class)})
     for t in input_data.additional_taxonomies:
-        if t.primary_asset_class:
-            taxonomy.append({"primaryAssetClass": _data(t.primary_asset_class)})
-        else:
-            entry = {"source": t.source, "value": {"name": _scheme_data(t.value_scheme, t.value)}}
-            taxonomy.append(entry)
+        entry = {"source": t.source, "value": {"name": _scheme_data(t.value_scheme, t.value)}}
+        taxonomy.append(entry)
     if input_data.other_taxonomy:
         taxonomy.append({
             "source": "Other",

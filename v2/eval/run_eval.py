@@ -23,7 +23,8 @@ sys.path.insert(0, '.')
 
 from v2.src.builders.cdm_builder import build_irs_trade_state
 from v2.tests.compare_reference import normalize, diff, CASES as ORACLE_CASES
-from v2.src.agent.extractor import extract_irs_trade, DEFAULT_MODEL
+from v2.src.agent.extractor_sonnet import extract_irs_trade as extract_sonnet
+from v2.src.agent.extractor_opus import extract_irs_trade as extract_opus
 
 GT_DIR = 'v2/data/ground_truth/interest_rate_swap'
 
@@ -33,6 +34,9 @@ CASES = {
     "zerocoupon": ("zerocoupon", "input.txt", "confirmation_text"),
     "basis":      ("basis", "input.dat", "fixed_width"),
     "basis-ois":  ("basis-ois", "input.txt", "kv_message"),
+    "xccy-fixedfixed": ("xccy-fixedfixed", "input.txt", "fix_tagvalue"),
+    "xccy-fixedfloat": ("xccy-fixedfloat", "input.json", "risk_system_json"),
+    "xccy-basis":      ("xccy-basis", "input.txt", "term_sheet_text"),
 }
 
 
@@ -53,14 +57,15 @@ def oracle_extract(case, raw_text, fmt):
     return fixture_fn()
 
 
-def run_case(case, use_oracle, model, verbose):
+def run_case(case, use_oracle, extractor_choice, verbose):
     raw_text, fmt = load_raw(case)
     expected = load_expected(case)
     try:
         if use_oracle:
             trade_input = oracle_extract(case, raw_text, fmt)
         else:
-            trade_input = extract_irs_trade(raw_text, fmt, model=model, verbose=verbose)
+            extract_fn = extract_sonnet if extractor_choice == "sonnet" else extract_opus
+            trade_input = extract_fn(raw_text, fmt, verbose=verbose)
     except NotImplementedError as e:
         return {"case": case, "status": "ERROR", "error": str(e), "diffs": None}
     except Exception as e:
@@ -83,8 +88,8 @@ def main():
     ap.add_argument("cases", nargs="*", help="case names (default: all)")
     ap.add_argument("--oracle", action="store_true",
                     help="use known-correct IRSTradeInput (harness self-test)")
-    ap.add_argument("--model", default=DEFAULT_MODEL,
-                    help=f"Claude model id (default: {DEFAULT_MODEL})")
+    ap.add_argument("--extractor", choices=["sonnet", "opus"], default="sonnet",
+                    help="which extractor to use: sonnet (cheaper) or opus (more accurate); default: sonnet")
     ap.add_argument("--json", metavar="PATH", help="write full report as JSON")
     ap.add_argument("--show", type=int, default=15, help="max diffs to print per case")
     ap.add_argument("--verbose", action="store_true",
@@ -92,12 +97,12 @@ def main():
     args = ap.parse_args()
 
     names = args.cases or list(CASES)
-    mode = "ORACLE" if args.oracle else f"AGENT ({args.model})"
+    mode = "ORACLE" if args.oracle else f"AGENT ({args.extractor})"
     print(f"=== IRS extraction eval [{mode}] ===\n")
 
     results, npass, nfail, nerr = [], 0, 0, 0
     for case in names:
-        r = run_case(case, args.oracle, args.model, args.verbose)
+        r = run_case(case, args.oracle, args.extractor, args.verbose)
         results.append(r)
         if r["status"] == "PASS":
             npass += 1

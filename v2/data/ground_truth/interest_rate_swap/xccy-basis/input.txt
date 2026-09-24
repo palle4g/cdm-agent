@@ -1,0 +1,81 @@
+                    CROSS-CURRENCY BASIS SWAP — TERM SHEET
+
+Trade Date:                19 March 2018 (this date is also the reference
+                            date for the FX fixings described below)
+
+Product Classification:
+  Primary Asset Class:      InterestRate
+  CFI Code:                 SRAXCC (scheme: ISO 10962 product classification)
+  EMIR Contract Type:       SW (scheme: DTCC EMIR contract-type classification)
+  GTR Product ID:           InterestRate:CrossCurrency:Basis
+                            (scheme: DTCC GTR-Product-Id)
+
+Regulatory Identifiers:
+  Unique Swap Identifier:   DRTY123456
+                            issued under USI scheme, issuer LEI 1031234567,
+                            issuer scheme: CFTC NSA coding scheme
+  Unique Transaction ID:    UITD7895394
+                            issued under UTI scheme, issuer LEI
+                            54930084UKLVMY22DS16 (Party A)
+
+Parties:
+  Party A:  LEI 54930084UKLVMY22DS16
+  Party B:  LEI 48750084UKLVTR22DS78
+
+--------------------------------------------------------------------
+LEG 1 — USD Leg (paid by Party 1, received by Party 2)
+--------------------------------------------------------------------
+  Notional:                 USD 2,034.95 (current notional; subject to the
+                            FX Notional Reset schedule described below,
+                            which recalculates it each period)
+  Rate:                     Floating, USD-LIBOR-BBA, 3 month tenor
+  Day Count Fraction:       ACT/360
+  Effective Date:           21 March 2018, adjusted Modified Following
+  Termination Date:         21 March 2023, adjusted Modified Following
+                            (adjusted date confirmed as 21 March 2023)
+  Calculation Period:       3 months, roll day 21, Modified Following
+  Payment:                  3 months, first payment 21 June 2018,
+                            relative to period end, Modified Following
+  Reset:                    relative to period start, Modified Following,
+                            fixing 2 business days prior, no adjustment
+  Compounding:               None
+  Cashflow Representation:  cashflows do not match parameters (false)
+  Settlement Currency:      USD
+  Principal Exchange:       Intermediate only (no initial or final
+                            principal exchange on this leg)
+  FX Notional Reset:        This leg's notional is FX-linked.
+    Varying Currency:        USD
+    Fixing Lag:               2 business days AFTER the Trade Date,
+                              Modified Following
+    FX Rate Source:           Telerate, page "WM Company LDN 11am Mid",
+                              heading USD/EUR
+    Fixing Time:              11:00:00, London (GBLO)
+    Interim Exchange Payment: 2 business days AFTER the Trade Date,
+                              Modified Following
+
+--------------------------------------------------------------------
+LEG 2 — EUR Leg (paid by Party 2, received by Party 1)
+--------------------------------------------------------------------
+  Notional:                 EUR 1,650
+  Rate:                     Floating, EUR-EURIBOR-Telerate, 3 month tenor,
+                            plus a spread of -0.45% (i.e. -0.0045)
+  Day Count Fraction:       ACT/360
+  Effective Date:           21 March 2018, adjusted Modified Following
+  Termination Date:         21 March 2023, adjusted Modified Following
+                            (adjusted date confirmed as 21 March 2023)
+  Calculation Period:       3 months, roll day 21, Modified Following
+  Payment:                  3 months, first payment 21 June 2018,
+                            relative to period end, Modified Following
+  Reset:                    relative to period start, Modified Following,
+                            fixing 2 business days prior, no adjustment
+  Compounding:               None
+  Cashflow Representation:  cashflows do not match parameters (false)
+  Settlement Currency:      EUR
+  Principal Exchange:       Initial, Final, and Intermediate
+    Initial Exchange:        21 March 2018 — Party 1 pays EUR 1,650 to
+                              Party 2
+    Final Exchange:          21 March 2023 — Party 2 pays EUR 1,650 back
+                              to Party 1
+
+--------------------------------------------------------------------
+This term sheet is indicative and subject to final confirmation.

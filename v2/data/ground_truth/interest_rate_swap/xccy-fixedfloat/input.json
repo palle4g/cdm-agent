@@ -1,0 +1,67 @@
+{
+  "extract_system": "XCCY-RISK-EXPORT",
+  "extract_ts": "2001-01-09T16:00:00Z",
+  "deal_header": {
+    "trade_date": "2001-01-09",
+    "product": "CROSS_CURRENCY_SWAP",
+    "product_subtype": "FIXED_VS_FLOAT_MTM",
+    "note": "notional on the floating (USD) leg is FX-reset, marked-to-market"
+  },
+  "counterparties": {
+    "our_side": {
+      "label": "Party B",
+      "id_scheme": "dummy-party-id (test booking, no LEI)",
+      "role": "PARTY2",
+      "our_trade_ref": {"value": "123", "scheme": "http://www.partyB.com/trade-id"}
+    },
+    "their_side": {
+      "label": "Party A",
+      "id_scheme": "dummy-party-id (test booking, no LEI)",
+      "role": "PARTY1",
+      "their_trade_ref": {"value": "123", "scheme": "http://www.partyA.com/trade-id"}
+    }
+  },
+  "legs": [
+    {
+      "leg_id": "JPY_FIXED",
+      "paid_by": "PARTY1",
+      "type": "FIXED",
+      "notional": {"amount": 1000000000, "ccy": "JPY"},
+      "fixed_rate_pct": 1.0,
+      "daycount": "ACT/365F",
+      "schedule": {
+        "start": "2006-01-11", "start_adj": "NONE",
+        "end": "2011-01-11", "end_adj": "MODFOLLOWING",
+        "calc_freq": "6M", "roll_day": 11, "calc_adj": "MODFOLLOWING",
+        "pay_freq": "6M", "pay_rel": "PERIOD_END", "pay_adj": "MODFOLLOWING"
+      },
+      "principal_exchange": {"initial": true, "final": true, "intermediate": true}
+    },
+    {
+      "leg_id": "USD_FLOAT_FXRESET",
+      "paid_by": "PARTY2",
+      "type": "FLOATING",
+      "rate_index": "USD-LIBOR-BBA",
+      "index_tenor": "3M",
+      "daycount": "ACT/360",
+      "schedule": {
+        "start": "2006-01-11", "start_adj": "NONE",
+        "end": "2011-01-11", "end_adj": "MODFOLLOWING",
+        "calc_freq": "3M", "roll_day": 11, "calc_adj": "MODFOLLOWING",
+        "pay_freq": "3M", "pay_rel": "PERIOD_END", "pay_adj": "MODFOLLOWING",
+        "reset_rel": "PERIOD_START",
+        "fixing_lag": {"days": -2, "day_type": "Business", "adj": "NONE"},
+        "reset_freq": "3M", "reset_adj": "MODFOLLOWING"
+      },
+      "principal_exchange": {"initial": true, "final": true, "intermediate": true},
+      "notional_fx_reset": {
+        "note": "USD notional recalculated each period from a JPY notional schedule using an FX fixing; no static USD notional amount is booked",
+        "varying_currency": "USD",
+        "fx_fixing_lag": {"days": -2, "day_type": "Business", "adj": "NONE", "relative_to": "the leg's own reset dates"},
+        "fx_source": "BankOfJapan",
+        "fx_fixing_time": "17:00:00 Tokyo (JPTO)",
+        "interim_exchange_payment_lag": {"days": 0, "adj": "NONE", "relative_to": "the leg's own payment dates"}
+      }
+    }
+  ]
+}

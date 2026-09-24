@@ -53,8 +53,8 @@ class LegInput:
     payer: str
     receiver: str
     leg_type: str                            # "fixed" or "floating"
-    notional_amount: Optional[float]         # None for FX-linked legs
     notional_currency: str
+    notional_amount: Optional[float] = None  # None for FX-linked legs
     fixed_rate: Optional[float] = None
     floating_index: Optional[str] = None
     floating_index_is_named: bool = True     # False: identifier only, no floatingRateIndex value
@@ -134,11 +134,11 @@ class TradeIdentifierInput:
 
 @dataclass
 class TaxonomyInput:
-    """Non-ISDA taxonomy entry (CFI, EMIR, primaryAssetClass)."""
-    source: Optional[str] = None           # "CFI", "EMIR", None for primaryAssetClass
-    value: Optional[str] = None            # taxonomy name value
+    """Non-ISDA taxonomy entry (CFI, EMIR). For the primary asset class,
+    use IRSTradeInput.primary_asset_class directly, not this class."""
+    source: str = ""                       # "CFI", "EMIR"
+    value: str = ""                        # taxonomy code/name value
     value_scheme: Optional[str] = None     # scheme URI for the value
-    primary_asset_class: Optional[str] = None  # set instead of source+value
 
 
 @dataclass
