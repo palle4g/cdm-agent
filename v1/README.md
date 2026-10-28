@@ -8,7 +8,7 @@ Status: 3 financial products live · 14 diverse test trades · 100% mapping accu
 
 ## The Problem
 
-Banks store trade data in decades-old, incompatible formats. Citi runs 17 separate systems just for interest rate swaps. SMBC's core trading data flows through systems 30–40 years old. Every format has different field names for the same concept — `CPTY_CODE`, `COUNTERPARTY_ID`, `CTR_PTY` might all mean "who's on the other side of this trade."
+Banks store trade data in decades-old, incompatible formats. Citi runs 17 separate systems just for interest rate swaps. Another's core trading data flows through systems 30–40 years old. Every format has different field names for the same concept — `CPTY_CODE`, `COUNTERPARTY_ID`, `CTR_PTY` might all mean "who's on the other side of this trade."
 
 This fragmentation is why banks struggle to calculate firm-wide risk in real time, why regulatory reporting is slow and error-prone, and why AI initiatives stall — you cannot build intelligent systems on top of data you cannot even read consistently.
 
